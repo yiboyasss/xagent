@@ -876,7 +876,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
             if (files.length > 0) {
               content = (
                 <div className="space-y-2">
-                  <div>{messageContent}</div>
+                  <div className="whitespace-pre-wrap max-h-60 overflow-y-auto">{messageContent}</div>
                   <FileAttachment
                     files={files}
                     variant="user-message"
@@ -3336,7 +3336,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
             if (files && files.length > 0) {
               content = (
                 <div className="space-y-2">
-                  <div>{message}</div>
+                  <div className="whitespace-pre-wrap max-h-60 overflow-y-auto">{message}</div>
                   <FileAttachment
                     files={files.map(f => ({ name: f.name, type: f.type, size: f.size, path: '' }))} // Basic info for optimistic render
                     variant="user-message"
@@ -3384,7 +3384,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
         if (files && files.length > 0) {
           content = (
             <div className="space-y-2">
-              <div>{message}</div>
+              <div className="whitespace-pre-wrap max-h-60 overflow-y-auto">{message}</div>
               <FileAttachment
                 files={files.map(f => ({ name: f.name, type: f.type, size: f.size, path: '' }))} // Basic info for optimistic render
                 variant="user-message"

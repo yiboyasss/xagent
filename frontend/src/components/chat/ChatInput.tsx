@@ -218,19 +218,25 @@ export function ChatInput({
       e.preventDefault();
       const pastedFiles: File[] = [];
 
-      fileItems.forEach(item => {
+      fileItems.forEach((item, index) => {
         const file = item.getAsFile();
         if (file) {
           const hasName = typeof (file as any).name === 'string' && (file as any).name.length > 0;
-          if (hasName) {
+          // Handle default "image.png" name which causes conflicts when pasting multiple images
+          if (hasName && file.name !== 'image.png') {
             pastedFiles.push(file);
           } else {
             const timestamp = Date.now();
             const mime = item.type || file.type || 'application/octet-stream';
             const ext = mime.split('/')[1] || 'bin';
-            const namedFile = new File([file], `pasted-file-${timestamp}.${ext}`, {
+            // If it was image.png, preserve extension but make unique. Otherwise default to pasted-file
+            const baseName = (hasName && file.name === 'image.png')
+              ? `image-${timestamp}-${index}`
+              : `pasted-file-${timestamp}-${index}`;
+
+            const namedFile = new File([file], `${baseName}.${ext}`, {
               type: mime,
-              lastModified: Date.now(),
+              lastModified: timestamp,
             });
             pastedFiles.push(namedFile);
           }
