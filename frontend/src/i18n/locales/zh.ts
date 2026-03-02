@@ -1657,12 +1657,18 @@ Build when you need.`
     },
     preview: {
       title: "预览",
+      live: "实时预览",
+      synced: "配置已同步",
       initialMessage: "你好！我是你的 Agent 预览。你可以在这里测试你的配置。",
       chat: {
         placeholder: "与你的 Agent 对话...",
         send: "发送",
         you: "你",
         agent: "测试 Agent",
+      },
+      status: {
+        connected: "已连接",
+        disconnected: "未连接",
       },
       errors: {
         noModel: "请先选择通用模型",

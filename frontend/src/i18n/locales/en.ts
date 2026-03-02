@@ -1657,12 +1657,18 @@ Build when you need.`
     },
     preview: {
       title: "Preview",
+      live: "Live Preview",
+      synced: "Config Synced",
       initialMessage: "Hello! I am the preview of your agent. You can test your configuration here.",
       chat: {
         placeholder: "Chat with your agent...",
         send: "Send",
         you: "You",
         agent: "Test Agent",
+      },
+      status: {
+        connected: "Connected",
+        disconnected: "Disconnected",
       },
       errors: {
         noModel: "Please select a general model first",

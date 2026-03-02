@@ -11,7 +11,7 @@ import { ChatInput } from "@/components/chat/ChatInput"
 import { ChatMessage } from "@/components/chat/ChatMessage"
 import { apiRequest } from "@/lib/api-wrapper"
 import { getApiUrl, getWsUrl } from "@/lib/utils"
-import { PlusCircle, MessageSquare, Upload, Download, Info, Settings2 } from "lucide-react"
+import { PlusCircle, MessageSquare, Upload, Download, Info, Settings2, Check, Zap } from "lucide-react"
 import { useI18n } from "@/contexts/i18n-context"
 import { useAuth } from "@/contexts/auth-context"
 import { FileAttachment } from "@/components/file-attachment"
@@ -125,6 +125,18 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
   const [originalData, setOriginalData] = useState<any>(null)
   const [isKbModalOpen, setIsKbModalOpen] = useState(false)
   const [isModelConfigOpen, setIsModelConfigOpen] = useState(false)
+  const [configSynced, setConfigSynced] = useState(false)
+  const isFirstRender = useRef(true)
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    setConfigSynced(true)
+    const timer = setTimeout(() => setConfigSynced(false), 2000)
+    return () => clearTimeout(timer)
+  }, [name, description, instructions, executionMode, suggestedPrompts, selectedKbs, selectedSkills, selectedToolCategories, modelConfig])
 
   // Create Success Dialog State
   const [showSuccessDialog, setShowSuccessDialog] = useState(false)
@@ -1248,13 +1260,21 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
       <div className="h-14 border-b flex items-center px-4 gap-2 bg-card/30">
         <MessageSquare className="h-5 w-5 text-muted-foreground" />
         <span className="font-medium">{t("builds.preview.title")}</span>
+        <div className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 transition-all duration-300 ${
+          configSynced
+            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+            : "bg-muted text-muted-foreground"
+        }`}>
+          {configSynced ? <Check className="h-3 w-3" /> : <Zap className="h-3 w-3" />}
+          <span>{configSynced ? t("builds.preview.synced") : t("builds.preview.live")}</span>
+        </div>
         <div className="ml-auto flex items-center gap-2">
           <div
             className={`w-2.5 h-2.5 rounded-full ${wsConnected ? 'bg-green-500' : 'bg-red-500'}`}
-            title={wsConnected ? 'Connected' : 'Disconnected'}
+            title={wsConnected ? t("builds.preview.status.connected") : t("builds.preview.status.disconnected")}
           />
           <span className="text-xs text-muted-foreground">
-            {wsConnected ? 'Connected' : 'Disconnected'}
+            {wsConnected ? t("builds.preview.status.connected") : t("builds.preview.status.disconnected")}
           </span>
         </div>
       </div>
