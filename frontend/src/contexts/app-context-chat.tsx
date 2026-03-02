@@ -2653,7 +2653,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
             } else {
               // DAG plan-execute pattern - Display in left panel
               const stepId = eventData.step_id || "unknown"
-  
+
               // Memory retrieval start event
               dispatch({
                 type: "ADD_MESSAGE",
