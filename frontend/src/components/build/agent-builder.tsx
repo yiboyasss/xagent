@@ -11,7 +11,7 @@ import { ChatInput } from "@/components/chat/ChatInput"
 import { ChatMessage } from "@/components/chat/ChatMessage"
 import { apiRequest } from "@/lib/api-wrapper"
 import { getApiUrl, getWsUrl } from "@/lib/utils"
-import { PlusCircle, MessageSquare, Upload, Download, Info, Settings2, Check, Zap } from "lucide-react"
+import { PlusCircle, MessageSquare, Upload, Download, Info, Settings2, Check, Zap, BookOpen } from "lucide-react"
 import { useI18n } from "@/contexts/i18n-context"
 import { useAuth } from "@/contexts/auth-context"
 import { FileAttachment } from "@/components/file-attachment"
@@ -704,6 +704,11 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
       return
     }
 
+    if (!instructions.trim()) {
+      setErrorMessage(t("builds.editor.validation.instructionsRequired"))
+      return
+    }
+
     if (!modelConfig.general) {
       setErrorMessage(t("builds.editor.validation.modelRequired"))
       return
@@ -922,7 +927,9 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
 
         {/* Name */}
         <div className="space-y-2">
-          <Label htmlFor="name">{t("builds.configForm.name.label")}</Label>
+          <Label htmlFor="name">
+            {t("builds.configForm.name.label")} <span className="text-destructive">*</span>
+          </Label>
           <Input
             id="name"
             placeholder={t("builds.configForm.name.placeholder")}
@@ -944,7 +951,9 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
 
         {/* Instructions */}
         <div className="space-y-2">
-          <Label htmlFor="instructions">{t("builds.configForm.instructions.label")}</Label>
+          <Label htmlFor="instructions">
+            {t("builds.configForm.instructions.label")} <span className="text-destructive">*</span>
+          </Label>
           <Textarea
             id="instructions"
             placeholder={t("builds.configForm.instructions.placeholder")}
@@ -1039,8 +1048,17 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>{t("builds.configForm.model.configure")}</DialogTitle>
-                <DialogDescription>
+                <DialogDescription className="flex items-center gap-1.5">
                   {t("builds.configForm.model.configureDescription")}
+                  <a
+                    href="https://docs.xagent.run/models/overview"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center text-muted-foreground hover:text-primary transition-colors"
+                    title="View Documentation"
+                  >
+                    <BookOpen className="h-3.5 w-3.5" />
+                  </a>
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">

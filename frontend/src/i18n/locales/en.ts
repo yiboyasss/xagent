@@ -1554,6 +1554,7 @@ Build when you need.`
       },
       validation: {
         nameRequired: "Agent name is required",
+        instructionsRequired: "Agent instructions are required",
         modelRequired: "Please select a general model",
       },
       success: {
@@ -1600,16 +1601,16 @@ Build when you need.`
         configureDescription: "Configure other specialized model parameters.",
         noData: "No models available",
         types: {
-          general: "General Model",
-          smallFast: "Small & Fast",
-          visual: "Visual Model",
-          compact: "Compact Model",
+          general: "Main Model",
+          smallFast: "Fast Model",
+          visual: "Vision Model",
+          compact: "Long Context Model",
         },
         tips: {
-          general: "General purpose LLM suitable for most tasks, balancing performance and cost.",
-          smallFast: "Fast response and lower cost, suitable for simple tasks or low latency scenarios.",
-          visual: "Capable of image recognition and processing, suitable for image-related tasks.",
-          compact: "Lightweight model suitable for resource-constrained or high-immediacy scenarios.",
+          general: "Primary model for all task execution",
+          smallFast: "For simple operations",
+          visual: "For conversation history compression",
+          compact: "For image understanding",
         },
       },
       knowledgeBase: {
