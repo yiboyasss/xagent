@@ -66,7 +66,7 @@ export function MonitoringPage() {
   const loadMonitoringData = async () => {
     setIsLoading(true)
     try {
-      // 并行加载所有数据
+      // Load all data in parallel
       const [statsResponse, popularToolsResponse, modelStatsResponse] = await Promise.all([
         apiRequest(`${getApiUrl()}/api/monitor/stats`),
         apiRequest(`${getApiUrl()}/api/monitor/popular-tools`),
@@ -103,7 +103,7 @@ export function MonitoringPage() {
           <p className="text-muted-foreground">{t('monitoring.description')}</p>
         </div>
 
-        {/* 统计卡片 */}
+        {/* Stats cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="p-6 bg-[#161B22] border-[rgba(255,255,255,0.08)]">
             <div className="flex items-center justify-between">
@@ -162,7 +162,7 @@ export function MonitoringPage() {
           </Card>
         </div>
 
-        {/* 统计内容 */}
+        {/* Stats content */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="bg-[#161B22] border-[rgba(255,255,255,0.08)]">
             <div className="p-6">
@@ -198,7 +198,7 @@ export function MonitoringPage() {
             </div>
           </Card>
 
-          {/* 工具使用 */}
+          {/* Tool Usage */}
           <Card className="bg-[#161B22] border-[rgba(255,255,255,0.08)]">
             <div className="p-6">
               <h3 className="text-lg font-semibold text-[#E6EDF3] mb-4">{t('monitoring.tools.title')}</h3>

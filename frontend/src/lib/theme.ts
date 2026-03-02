@@ -111,23 +111,23 @@ export const themes: Record<string, Theme> = {
     name: 'Blue',
     mode: 'dark',
     colors: {
-      background: '215 27% 17%', // 深蓝色背景
+      background: '215 27% 17%', // Dark blue background
       foreground: '210 40% 98%',
-      card: '215 25% 12%', // 稍微浅一点的蓝色卡片
+      card: '215 25% 12%', // Slightly lighter blue card
       cardForeground: '210 40% 98%',
       popover: '215 27% 17%',
       popoverForeground: '210 40% 98%',
-      primary: '217 91% 60%', // 明亮的蓝色主色
+      primary: '217 91% 60%', // Bright blue primary color
       primaryForeground: '222.2 84% 4.9%',
-      secondary: '215 25% 20%', // 蓝色系次要色
+      secondary: '215 25% 20%', // Blue secondary color
       secondaryForeground: '210 40% 98%',
-      muted: '215 20% 25%', // 蓝色系的muted色
+      muted: '215 20% 25%', // Blue muted color
       mutedForeground: '215 20% 70%',
-      accent: '215 25% 30%', // 蓝色强调色
+      accent: '215 25% 30%', // Blue accent color
       accentForeground: '210 40% 98%',
       destructive: '0 84.2% 60.2%',
       destructiveForeground: '210 40% 98%',
-      border: '215 25% 25%', // 蓝色边框
+      border: '215 25% 25%', // Blue border
       input: '215 25% 25%',
       ring: '217 91% 60%',
       // Gradient text colors
@@ -144,23 +144,23 @@ export const themes: Record<string, Theme> = {
     name: 'Green',
     mode: 'dark',
     colors: {
-      background: '142 28% 15%', // 深绿色背景
+      background: '142 28% 15%', // Dark green background
       foreground: '210 40% 98%',
-      card: '142 25% 10%', // 稍微浅一点的绿色卡片
+      card: '142 25% 10%', // Slightly lighter green card
       cardForeground: '210 40% 98%',
       popover: '142 28% 15%',
       popoverForeground: '210 40% 98%',
-      primary: '142 76% 36%', // 绿色主色
+      primary: '142 76% 36%', // Green primary color
       primaryForeground: '355.7 100% 97.3%',
-      secondary: '142 25% 18%', // 绿色系次要色
+      secondary: '142 25% 18%', // Green secondary color
       secondaryForeground: '210 40% 98%',
-      muted: '142 20% 22%', // 绿色系的muted色
+      muted: '142 20% 22%', // Green muted color
       mutedForeground: '142 20% 75%',
-      accent: '142 25% 25%', // 绿色强调色
+      accent: '142 25% 25%', // Green accent color
       accentForeground: '210 40% 98%',
       destructive: '0 84.2% 60.2%',
       destructiveForeground: '210 40% 98%',
-      border: '142 25% 22%', // 绿色边框
+      border: '142 25% 22%', // Green border
       input: '142 25% 22%',
       ring: '142 76% 36%',
       // Gradient text colors
@@ -177,23 +177,23 @@ export const themes: Record<string, Theme> = {
     name: 'Purple',
     mode: 'dark',
     colors: {
-      background: '262 28% 17%', // 深紫色背景
+      background: '262 28% 17%', // Dark purple background
       foreground: '210 40% 98%',
-      card: '262 25% 12%', // 稍微浅一点的紫色卡片
+      card: '262 25% 12%', // Slightly lighter purple card
       cardForeground: '210 40% 98%',
       popover: '262 28% 17%',
       popoverForeground: '210 40% 98%',
-      primary: '262 83% 58%', // 紫色主色
+      primary: '262 83% 58%', // Purple primary color
       primaryForeground: '210 40% 98%',
-      secondary: '262 25% 20%', // 紫色系次要色
+      secondary: '262 25% 20%', // Purple secondary color
       secondaryForeground: '210 40% 98%',
-      muted: '262 20% 25%', // 紫色系的muted色
+      muted: '262 20% 25%', // Purple muted color
       mutedForeground: '262 20% 70%',
-      accent: '262 25% 30%', // 紫色强调色
+      accent: '262 25% 30%', // Purple accent color
       accentForeground: '210 40% 98%',
       destructive: '0 84.2% 60.2%',
       destructiveForeground: '210 40% 98%',
-      border: '262 25% 25%', // 紫色边框
+      border: '262 25% 25%', // Purple border
       input: '262 25% 25%',
       ring: '262 83% 58%',
       // Gradient text colors
@@ -210,31 +210,31 @@ export const themes: Record<string, Theme> = {
     name: 'Cyber',
     mode: 'dark',
     colors: {
-      background: '222 47% 11%', // #0F172A - 深蓝黑背景
-      foreground: '0 0% 100%', // #FFFFFF - 白色文字
-      card: '217 33% 17%', // #1E293B - 卡片背景
+      background: '222 47% 11%', // #0F172A - Dark blue-black background
+      foreground: '0 0% 100%', // #FFFFFF - White text
+      card: '217 33% 17%', // #1E293B - Card background
       cardForeground: '0 0% 100%',
       popover: '222 47% 11%',
       popoverForeground: '0 0% 100%',
-      primary: '180 100% 50%', // #00F0FF - 青色主色（Cyber cyan）
+      primary: '180 100% 50%', // #00F0FF - Cyan primary color (Cyber cyan)
       primaryForeground: '222 47% 11%',
-      secondary: '217 33% 17%', // #1E293B - 次要色
+      secondary: '217 33% 17%', // #1E293B - Secondary color
       secondaryForeground: '210 40% 98%',
-      muted: '215 25% 27%', // #334155 - 静音色
+      muted: '215 25% 27%', // #334155 - Muted color
       mutedForeground: '215 16% 47%', // #64748B
-      accent: '180 100% 50%', // #00F0FF - 青色强调色
+      accent: '180 100% 50%', // #00F0FF - Cyan accent color
       accentForeground: '222 47% 11%',
-      destructive: '0 84% 60%', // 红色
+      destructive: '0 84% 60%', // Red
       destructiveForeground: '0 0% 100%',
-      border: '217 33% 17%', // #1E293B - 边框色
-      input: '222 47% 7%', // #020617 - 输入框背景
-      ring: '180 100% 50%', // #00F0FF - 焦点环
+      border: '217 33% 17%', // #1E293B - Border color
+      input: '222 47% 7%', // #020617 - Input background
+      ring: '180 100% 50%', // #00F0FF - Focus ring
       // Extended colors
-      cardHover: '215 25% 27%', // #334155 - 卡片悬停色
-      borderHighlight: '215 25% 41%', // #CBD5E1 - 高亮边框
-      accentBg: '180 100% 50% / 0.1', // 青色背景（透明）
-      accentBorder: '180 100% 50% / 0.2', // 青色边框（透明）
-      shadowColor: '0 0% 0% / 0.5', // 阴影色
+      cardHover: '215 25% 27%', // #334155 - Card hover color
+      borderHighlight: '215 25% 41%', // #CBD5E1 - Highlight border
+      accentBg: '180 100% 50% / 0.1', // Cyan background (transparent)
+      accentBorder: '180 100% 50% / 0.2', // Cyan border (transparent)
+      shadowColor: '0 0% 0% / 0.5', // Shadow color
       // Gradient text colors
       gradientFrom: '180 100% 50%', // Cyan
       gradientTo: '280 100% 70%', // Neon Purple
@@ -249,31 +249,31 @@ export const themes: Record<string, Theme> = {
     name: 'Cyber Light',
     mode: 'light',
     colors: {
-      background: '210 40% 98%', // #F8FAFC - 浅灰背景
-      foreground: '222 47% 11%', // #0F172A - 深色文字
-      card: '0 0% 100%', // #FFFFFF - 白色卡片
+      background: '210 40% 98%', // #F8FAFC - Light gray background
+      foreground: '222 47% 11%', // #0F172A - Dark text
+      card: '0 0% 100%', // #FFFFFF - White card
       cardForeground: '222 47% 11%',
       popover: '210 40% 98%',
       popoverForeground: '222 47% 11%',
-      primary: '200 98% 39%', // #0284C7 - 蓝色主色 (Sky-600)
+      primary: '200 98% 39%', // #0284C7 - Blue primary color (Sky-600)
       primaryForeground: '0 0% 100%',
-      secondary: '210 40% 96%', // 浅灰次要色
+      secondary: '210 40% 96%', // Light gray secondary color
       secondaryForeground: '222 84% 4.9%',
-      muted: '210 30% 95%', // 浅灰静音色
+      muted: '210 30% 95%', // Light gray muted color
       mutedForeground: '215 16% 47%', // #64748B
-      accent: '200 98% 39%', // #0284C7 - 蓝色强调色
+      accent: '200 98% 39%', // #0284C7 - Blue accent color
       accentForeground: '0 0% 100%',
       destructive: '0 84% 60%',
       destructiveForeground: '210 40% 98%',
-      border: '214 31% 91%', // #E2E8F0 - 浅色边框
-      input: '210 40% 96%', // #F1F5F9 - 输入框背景
-      ring: '200 98% 39%', // 蓝色焦点环
+      border: '214 31% 91%', // #E2E8F0 - Light border
+      input: '210 40% 96%', // #F1F5F9 - Input background
+      ring: '200 98% 39%', // Blue focus ring
       // Extended colors
-      cardHover: '210 40% 96%', // #F1F5F9 - 卡片悬停色
-      borderHighlight: '213 27% 84%', // #CBD5E1 - 高亮边框
-      accentBg: '200 98% 39% / 0.1', // 蓝色背景（透明）
-      accentBorder: '200 98% 39% / 0.2', // 蓝色边框（透明）
-      shadowColor: '0 0% 0% / 0.05', // 阴影色
+      cardHover: '210 40% 96%', // #F1F5F9 - Card hover color
+      borderHighlight: '213 27% 84%', // #CBD5E1 - Highlight border
+      accentBg: '200 98% 39% / 0.1', // Blue background (transparent)
+      accentBorder: '200 98% 39% / 0.2', // Blue border (transparent)
+      shadowColor: '0 0% 0% / 0.05', // Shadow color
       // Gradient text colors
       gradientFrom: '200 98% 39%', // Sky-600
       gradientTo: '180 100% 50%', // Cyan/Teal

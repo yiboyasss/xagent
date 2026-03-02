@@ -2,19 +2,19 @@ import React from 'react'
 import { marked } from 'marked'
 import { getApiUrl } from '@/lib/utils'
 
-// 增强的 Markdown 识别函数：覆盖更广的 Markdown 特征而不局限于以 # 开头
+// Enhanced Markdown detection function: covers broader Markdown features not limited to starting with #
 const isLikelyMarkdown = (s: string): boolean => {
   const t = s.trim()
   if (!t) return false
   return (
-    t.startsWith('#') || // 标题
-    s.includes('```') || // 代码块
-    /(\n|^)\s*(-|\*|\d+\.)\s/.test(s) || // 列表（无序/有序）
-    (s.includes('|') && s.includes('---')) || // 表格
-    /\[[^\]]+\]\([^\)]+\)/.test(s) || // 链接 [text](url)
-    /!\[[^\]]*\]\([^\)]+\)/.test(s) || // 图片 ![alt](url)
-    /(\n|^)\s*>\s/.test(s) || // 引用块
-    /(\n|^)\s*---\s*(\n|$)/.test(s) // 水平分割线
+    t.startsWith('#') || // Heading
+    s.includes('```') || // Code block
+    /(\n|^)\s*(-|\*|\d+\.)\s/.test(s) || // List (unordered/ordered)
+    (s.includes('|') && s.includes('---')) || // Table
+    /\[[^\]]+\]\([^\)]+\)/.test(s) || // Link [text](url)
+    /!\[[^\]]*\]\([^\)]+\)/.test(s) || // Image ![alt](url)
+    /(\n|^)\s*>\s/.test(s) || // Blockquote
+    /(\n|^)\s*---\s*(\n|$)/.test(s) // Horizontal rule
   )
 }
 
@@ -154,7 +154,7 @@ export function JsonRenderer({ data, className = '', onFileClick }: JsonRenderer
       const parsed = JSON.parse(data)
       return <JsonRenderer data={parsed} className={className} onFileClick={onFileClick} />
     } catch {
-      // 如果不是 JSON，尝试更全面地识别 Markdown
+      // If not JSON, try to identify Markdown more comprehensively
       if (isLikelyMarkdown(data)) {
         return <MarkdownRenderer content={data} className={className} onFileClick={onFileClick} />
       }

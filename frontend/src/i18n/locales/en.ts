@@ -730,6 +730,9 @@ Build when you need.`
     item: {
       keywordPrefix: "Keyword",
       tagPrefix: "Tag",
+      addedManually: "Added manually",
+      keywordsLabel: "Keywords:",
+      tagsLabel: "Tags:",
     },
     list: {
       empty: "No memories found",
@@ -1250,7 +1253,8 @@ Build when you need.`
       webIngestFailed: "Website import failed",
       deleteFailed: "Failed to delete knowledge base: {name}",
       deleteFailedGeneric: "Failed to delete knowledge base",
-      unsupportedFileType: "Unsupported file type",
+      unsupportedFileType: "Some file formats are not supported and have been skipped",
+      failedAtStep: "Failed at step: {step}",
     },
     actions: {
       deleteConfirm: "Are you sure you want to delete knowledge base {name}? This action cannot be undone.",

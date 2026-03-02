@@ -390,7 +390,7 @@ export function KnowledgeBaseDetailContent({ collectionName }: { collectionName:
       formData.append("timeout", webIngestionConfig.timeout.toString())
       formData.append("respect_robots_txt", webIngestionConfig.respect_robots_txt.toString())
 
-      // 添加索引配置
+      // Add index configuration
       formData.append("parse_method", ingestionConfig.parse_method)
       formData.append("chunk_strategy", ingestionConfig.chunk_strategy)
       formData.append("chunk_size", ingestionConfig.chunk_size.toString())
@@ -422,13 +422,13 @@ export function KnowledgeBaseDetailContent({ collectionName }: { collectionName:
       setWebIngestionResult(result)
       setWebIngestionProgress(100)
 
-      // 导入成功后刷新信息
+      // Refresh info after successful import
       await fetchCollectionInfo()
 
-      // 关闭对话框
+      // Close dialog
       setIsAddSourceOpen(false)
 
-      // 重置配置
+      // Reset configuration
       setWebIngestionConfig({
         start_url: "",
         max_pages: 100,
@@ -515,7 +515,7 @@ export function KnowledgeBaseDetailContent({ collectionName }: { collectionName:
 
       const result = await response.json()
 
-      // 重命名成功后跳转到新的 URL
+      // Redirect to new URL after successful rename
       window.location.href = `/kb/${encodeURIComponent(editCollectionName)}`
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("kb.detail.edit.errors.updateFailed"))

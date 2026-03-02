@@ -26,7 +26,7 @@ function shouldSkipRefresh(url: string): boolean {
   }
 }
 
-// 带重试机制的fetch函数
+// Fetch function with retry mechanism
 async function fetchWithRetry(
   url: string,
   options: RequestInit,
@@ -38,42 +38,42 @@ async function fetchWithRetry(
     try {
       const response = await fetch(url, options)
 
-      // 如果不是网络错误，直接返回
+      // If not a network error, return directly
       if (response.status !== 0 && !response.url.includes('net::ERR_')) {
         return response
       }
 
-      // 网络错误，重试
+      // Network error, retry
       lastError = new Error(`Network error on attempt ${attempt + 1}`)
 
     } catch (error) {
       lastError = error as Error
       console.warn(`Network request failed (attempt ${attempt + 1}/${maxRetries + 1}):`, error)
 
-      // 最后一次尝试，不再等待
+      // Last attempt, no wait
       if (attempt < maxRetries) {
-        // 指数退避，最多等待1秒
+        // Exponential backoff, max wait 1 second
         await new Promise(resolve => setTimeout(resolve, Math.min(1000, 100 * Math.pow(2, attempt))))
       }
     }
   }
 
-  // 所有重试都失败了，抛出最后一个错误
+  // All retries failed, throw last error
   throw lastError || new Error('All retry attempts failed')
 }
 
-// 添加等待刷新的订阅者
+// Add refresh subscriber
 function addRefreshSubscriber(callback: (token: string) => void) {
   refreshSubscribers.push(callback)
 }
 
-// 通知所有订阅者刷新完成
+// Notify all subscribers that refresh is complete
 function notifyRefreshSubscribers(token: string) {
   refreshSubscribers.forEach(callback => callback(token))
   refreshSubscribers = []
 }
 
-// 获取当前tokens
+// Get current tokens
 function getCurrentTokens(): { accessToken: string | null; refreshToken: string | null } {
   // Try new cache format first
   const cache = localStorage.getItem(AUTH_CACHE_KEY)
@@ -99,7 +99,7 @@ function getCurrentTokens(): { accessToken: string | null; refreshToken: string 
   }
 }
 
-// 刷新token
+// Refresh token
 async function refreshToken(): Promise<string | null> {
   const { accessToken, refreshToken: refresh } = getCurrentTokens()
   if (!refresh) return null
@@ -116,7 +116,7 @@ async function refreshToken(): Promise<string | null> {
     if (response.ok) {
       const data = await response.json()
       if (data.success && data.access_token) {
-        // 更新缓存中的tokens
+        // Update tokens in cache
         const cache = localStorage.getItem(AUTH_CACHE_KEY)
         if (cache) {
           try {
@@ -131,18 +131,18 @@ async function refreshToken(): Promise<string | null> {
             if (data.refresh_expires_in) {
               authCache.refreshExpiresAt = Date.now() + data.refresh_expires_in * 1000
             }
-            authCache.timestamp = Date.now()  // 更新时间戳
+            authCache.timestamp = Date.now()  // Update timestamp
             localStorage.setItem(AUTH_CACHE_KEY, JSON.stringify(authCache))
           } catch {
-            // 如果解析失败，使用旧格式
+            // If parsing fails, use old format
             localStorage.setItem("auth_token", data.access_token)
           }
         } else {
-          // 使用旧格式
+          // Use old format
           localStorage.setItem("auth_token", data.access_token)
         }
 
-        // 触发一个存储事件，通知 AuthContext 更新状态
+        // Trigger a storage event to notify AuthContext to update state
         window.dispatchEvent(new StorageEvent(AUTH_TOKEN_UPDATED_EVENT, {
           key: AUTH_CACHE_KEY,
           newValue: localStorage.getItem(AUTH_CACHE_KEY)
@@ -158,35 +158,35 @@ async function refreshToken(): Promise<string | null> {
   return null
 }
 
-// API请求包装器
+// API request wrapper
 export async function apiRequest(
   url: string,
   options: RequestInit = {}
 ): Promise<Response> {
   const { accessToken, refreshToken: refresh } = getCurrentTokens()
 
-  // 如果没有token，直接请求
+  // If no token, request directly
   if (!accessToken) {
     return fetch(url, options)
   }
 
-  // 添加认证头
+  // Add authorization header
   const headers = {
     ...options.headers,
     "Authorization": `Bearer ${accessToken}`,
   }
 
-  // 带重试机制的fetch请求
+  // Fetch request with retry mechanism
   let response = await fetchWithRetry(url, { ...options, headers })
 
-  // 如果401错误且不是refresh请求，尝试刷新token
+  // If 401 error and not a refresh request, try to refresh token
   if (response.status === 401 && !shouldSkipRefresh(url)) {
-    // 检查是否是token过期还是无效token
+    // Check if token is expired or invalid
     const errorType = response.headers.get("Error-Type")
-    const isExpired = errorType === "TokenExpired" || !errorType // 默认认为是过期，尝试刷新
+    const isExpired = errorType === "TokenExpired" || !errorType // Default to expired, try to refresh
 
     if (!isExpired) {
-      // 明确的无效token，直接重定向到登录页
+      // Explicitly invalid token, redirect to login page directly
       localStorage.removeItem("auth_token")
       localStorage.removeItem("auth_user")
       localStorage.removeItem(AUTH_CACHE_KEY)
@@ -194,7 +194,7 @@ export async function apiRequest(
       return response
     }
     if (isRefreshing) {
-      // 如果正在刷新，等待刷新完成
+      // If refreshing, wait for refresh to complete
       return new Promise((resolve, reject) => {
         addRefreshSubscriber((newToken: string) => {
           const retryHeaders = {
@@ -214,17 +214,17 @@ export async function apiRequest(
       const newToken = await refreshToken()
 
       if (newToken) {
-        // 通知所有等待的订阅者
+        // Notify all waiting subscribers
         notifyRefreshSubscribers(newToken)
 
-        // 使用新token重试请求
+        // Retry request with new token
         const retryHeaders = {
           ...options.headers,
           "Authorization": `Bearer ${newToken}`,
         }
         response = await fetch(url, { ...options, headers: retryHeaders })
       } else {
-        // 刷新失败，清除认证数据并重定向到登录页
+        // Refresh failed, clear auth data and redirect to login page
         console.error("Token refresh failed, redirecting to login")
         localStorage.removeItem("auth_token")
         localStorage.removeItem("auth_user")
@@ -239,7 +239,7 @@ export async function apiRequest(
   return response
 }
 
-// 便捷方法
+// Convenience methods
 export const api = {
   get: (url: string, options?: RequestInit) =>
     apiRequest(url, { ...options, method: "GET" }),
@@ -270,10 +270,10 @@ export const api = {
     apiRequest(url, { ...options, method: "DELETE" }),
 }
 
-// 检查响应状态，如果是认证错误则重定向到登录
+// Check response status, if auth error redirect to login
 export function handleAuthError(response: Response) {
   if (response.status === 401) {
-    // 清除认证数据并重定向到登录页
+    // Clear auth data and redirect to login page
     localStorage.removeItem("auth_token")
     localStorage.removeItem("auth_user")
     localStorage.removeItem(AUTH_CACHE_KEY)

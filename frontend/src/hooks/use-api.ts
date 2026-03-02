@@ -52,13 +52,13 @@ export function useApi<T = any>(
   return { data, loading, error, execute, refetch: execute }
 }
 
-// 便捷的API调用hooks
+// Convenient API call hooks
 export const apiHooks = {
-  // 获取数据
+  // Get data
   useGet: <T>(url: string | null, options?: UseApiOptions) =>
     useApi<T>(url, { ...options, immediate: true }),
 
-  // 创建数据
+  // Create data
   usePost: <T = any>(url: string, options?: UseApiOptions) => {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<Error | null>(null)
@@ -90,7 +90,7 @@ export const apiHooks = {
     return { loading, error, execute }
     },
 
-  // 更新数据
+  // Update data
   usePut: <T = any>(url: string, options?: UseApiOptions) => {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<Error | null>(null)
@@ -122,7 +122,7 @@ export const apiHooks = {
     return { loading, error, execute }
     },
 
-  // 删除数据
+  // Delete data
   useDelete: (url: string, options?: UseApiOptions) => {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<Error | null>(null)

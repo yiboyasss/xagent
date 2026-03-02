@@ -174,7 +174,7 @@ export function KnowledgeBaseCreationDialog({ open, onOpenChange, onSuccess }: K
       })
 
       if (validFiles.length !== files.length) {
-        toast.error(t("kb.errors.unsupportedFileType") || "部分文件格式不支持，已跳过")
+        toast.error(t("kb.errors.unsupportedFileType"))
       }
 
       if (validFiles.length > 0) {
@@ -283,7 +283,7 @@ export function KnowledgeBaseCreationDialog({ open, onOpenChange, onSuccess }: K
         setIngestionResults(prev => [...prev, result])
 
         if (result.status === "partial" && result.failed_step) {
-          throw new Error(result.message || `Failed at step: ${result.failed_step}`)
+          throw new Error(result.message || t("kb.errors.failedAtStep", { step: result.failed_step }))
         }
 
         setUploadProgress(((i + 1) / selectedFiles.length) * 100)
@@ -391,7 +391,7 @@ export function KnowledgeBaseCreationDialog({ open, onOpenChange, onSuccess }: K
         </DialogHeader>
 
         <div className="flex flex-col gap-6">
-          {/* 基本信息 */}
+          {/* Basic Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium">{t("kb.dialog.basicInfo.title")}</h3>
             <div>
@@ -414,7 +414,7 @@ export function KnowledgeBaseCreationDialog({ open, onOpenChange, onSuccess }: K
             </div>
           </div>
 
-          {/* Tabs: 文件上传 / 网站导入 */}
+          {/* Tabs: File Upload / Web Import */}
           <Tabs value={activeImportTab} onValueChange={(v) => setActiveImportTab(v as "file" | "web")} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="file">
@@ -427,13 +427,13 @@ export function KnowledgeBaseCreationDialog({ open, onOpenChange, onSuccess }: K
               </TabsTrigger>
             </TabsList>
 
-            {/* 文件上传 Tab */}
+            {/* File Upload Tab */}
             <TabsContent value="file" className="space-y-4 w-full">
-              {/* 文件上传 */}
+              {/* File Upload */}
               <div className="space-y-4 w-full">
                 <h3 className="text-lg font-medium">{t("kb.dialog.fileUpload.title")}</h3>
 
-                {/* 文件选择区域 */}
+                {/* File Selection Area */}
                 <div
                   className={`w-full border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:bg-muted/50 transition-colors ${
                     isDragging ? "border-primary bg-primary/10" : "border-border"
@@ -459,7 +459,7 @@ export function KnowledgeBaseCreationDialog({ open, onOpenChange, onSuccess }: K
                   />
                 </div>
 
-                {/* 已选择文件列表 */}
+                {/* Selected Files List */}
                 {selectedFiles.length > 0 && (
                   <div>
                     <Label>{t("kb.dialog.fileUpload.selectedTitle")}</Label>
@@ -488,7 +488,7 @@ export function KnowledgeBaseCreationDialog({ open, onOpenChange, onSuccess }: K
                   </div>
                 )}
 
-                {/* 上传进度 */}
+                {/* Upload Progress */}
                 {isUploading && (
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
@@ -499,7 +499,7 @@ export function KnowledgeBaseCreationDialog({ open, onOpenChange, onSuccess }: K
                   </div>
                 )}
 
-                {/* 上传结果 */}
+                {/* Upload Result */}
                 {ingestionResults.length > 0 && (
                   <div>
                     <Label>{t("kb.detail.process.title")}</Label>
@@ -533,7 +533,7 @@ export function KnowledgeBaseCreationDialog({ open, onOpenChange, onSuccess }: K
               </div>
             </TabsContent>
 
-            {/* 网站导入 Tab */}
+            {/* Website Import Tab */}
             <TabsContent value="web" className="space-y-6">
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
@@ -544,7 +544,7 @@ export function KnowledgeBaseCreationDialog({ open, onOpenChange, onSuccess }: K
                   {t("kb.dialog.webImport.description")}
                 </p>
 
-                {/* 基础配置 */}
+                {/* Basic Configuration */}
                 <div className="space-y-4">
                   <h4 className="font-medium">{t("kb.dialog.webImport.basic.title")}</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -591,7 +591,7 @@ export function KnowledgeBaseCreationDialog({ open, onOpenChange, onSuccess }: K
                   </div>
                 </div>
 
-                {/* 高级配置 */}
+                {/* Advanced Configuration */}
                 <details className="space-y-4">
                   <summary className="cursor-pointer font-medium flex items-center gap-2">
                     <Settings size={16} />
@@ -683,7 +683,7 @@ export function KnowledgeBaseCreationDialog({ open, onOpenChange, onSuccess }: K
                   </div>
                 </details>
 
-                {/* 爬取进度 */}
+                {/* Crawl Progress */}
                 {isWebIngesting && (
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
@@ -695,7 +695,7 @@ export function KnowledgeBaseCreationDialog({ open, onOpenChange, onSuccess }: K
                   </div>
                 )}
 
-                {/* 爬取结果 */}
+                {/* Crawl Result */}
                 {webIngestionResult && (
                   <Card className="p-4">
                     <div className="space-y-2">
@@ -741,7 +741,7 @@ export function KnowledgeBaseCreationDialog({ open, onOpenChange, onSuccess }: K
             </TabsContent>
           </Tabs>
 
-          {/* 索引配置 */}
+          {/* Index Configuration */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium">{t("kb.index.title")}</h3>
 
@@ -831,7 +831,7 @@ export function KnowledgeBaseCreationDialog({ open, onOpenChange, onSuccess }: K
             </div>
           </div>
 
-          {/* 操作按钮 */}
+          {/* Action Buttons */}
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => {
               resetState()

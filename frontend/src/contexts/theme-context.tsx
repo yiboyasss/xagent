@@ -11,14 +11,14 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // 从环境变量获取初始主题
+  // Get initial theme from environment variable
   const initialTheme = getThemeFromEnv();
   const [themeName, setThemeNameState] = useState<string>(initialTheme);
   const [theme, setThemeState] = useState<Theme>(themes[initialTheme] || themes.dark);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    // 只在客户端应用主题
+    // Apply theme only on client side
     setIsClient(true);
     applyTheme(initialTheme);
   }, []);

@@ -4,9 +4,9 @@ import { useEffect, useRef, useState, useCallback } from "react"
 import { useAuth } from "@/contexts/auth-context"
 import { getWsUrl } from "@/lib/utils"
 
-// 重复消息检测：记录最近发送的消息
+// Duplicate message detection: record recently sent messages
 const recentMessages: Array<{ message: string; timestamp: number; taskId: number }> = []
-const MESSAGE_DUPLICATE_THRESHOLD = 2000 // 2秒内的相同消息视为重复
+const MESSAGE_DUPLICATE_THRESHOLD = 2000 // Same message within 2 seconds is considered duplicate
 
 interface WebSocketMessage {
   type: string
@@ -53,7 +53,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const reconnectAttemptsRef = useRef(0)
   const taskIdRef = useRef(taskId)
-  const tokenRef = useRef(token || authToken) // 优先使用传入的token，否则使用auth token
+  const tokenRef = useRef(token || authToken) // Prioritize passed token, otherwise use auth token
   const maxReconnectAttempts = 3
 
   // Update taskId ref when taskId changes
@@ -249,7 +249,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       }
 
       socket.onmessage = (event) => {
-        console.log('🔥🔥🔥 最原始 WebSocket 数据 🔥🔥🔥', event.data)
+        console.log('🔥🔥🔥 Raw WebSocket Data 🔥🔥🔥', event.data)
         try {
           const data = JSON.parse(event.data)
 
@@ -269,7 +269,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
               task_id: data.task_id,
               step_id: data.step_id,
               event_id: data.event_id,
-              event_type: data.event_type,  // 保留 event_type 字段！
+              event_type: data.event_type,  // Keep event_type field!
             }
           } else if (data.type === "task_completed") {
             message = {
@@ -387,7 +387,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     const timestamp = Date.now()
     console.log(`🚀 sendChatMessage called [${timestamp}]:`, { message, files: files?.map(f => f.name) })
 
-    // 暴力检测重复消息
+    // Brute force duplicate message detection
     const currentTaskId = taskIdRef.current
     const duplicateMessage = recentMessages.find(
       msg => msg.taskId === currentTaskId && msg.message === message && (timestamp - msg.timestamp) < MESSAGE_DUPLICATE_THRESHOLD
@@ -411,7 +411,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         task_id: taskIdRef.current,
       }
 
-      // 如果有文件，添加文件信息
+      // If there are files, add file info
       if (files && files.length > 0) {
         console.log(`📁 Processing files [${timestamp}]:`, files.length)
 
@@ -423,7 +423,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
                 name: file.name,
                 size: file.size,
                 type: file.type,
-                content: typeof e.target?.result === 'string' ? e.target.result.split(',')[1] : '' // 获取base64内容
+                content: typeof e.target?.result === 'string' ? e.target.result.split(',')[1] : '' // Get base64 content
               }
               console.log(`📄 File processed [${timestamp}]:`, fileData.name, 'size:', fileData.size)
               resolve(fileData)
@@ -432,7 +432,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           })
         })
 
-        // 等待所有文件读取完成
+        // Wait for all files to be read
         Promise.all(filePromises).then(fileDataList => {
           console.log(`✅ All files processed [${timestamp}], sending:`, fileDataList.length)
           messageData.files = fileDataList
@@ -440,9 +440,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           socketRef.current?.send(JSON.stringify(messageData))
           console.log(`✅ Message sent [${timestamp}]`)
 
-          // 记录已发送的消息
+          // Record sent message
           recentMessages.push({ message, timestamp, taskId: currentTaskId! })
-          // 清理5秒前的记录
+          // Clear records older than 5 seconds
           const cutoffTime = timestamp - 5000
           const firstKeepIndex = recentMessages.findIndex(msg => msg.timestamp >= cutoffTime)
           if (firstKeepIndex === -1) {
@@ -456,9 +456,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         socketRef.current?.send(JSON.stringify(messageData))
         console.log(`✅ Message sent [${timestamp}]`)
 
-        // 记录已发送的消息
+        // Record sent message
         recentMessages.push({ message, timestamp, taskId: currentTaskId! })
-        // 清理5秒前的记录
+        // Clear records older than 5 seconds
         const cutoffTime = timestamp - 5000
         const firstKeepIndex = recentMessages.findIndex(msg => msg.timestamp >= cutoffTime)
         if (firstKeepIndex === -1) {

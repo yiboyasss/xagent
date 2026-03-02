@@ -17,7 +17,7 @@ interface MessagesPreviewProps {
   contextPreview: any
 }
 
-// 单个消息组件
+// Single message component
 function MessageItem({ message, index }: { message: Message; index: number }) {
   const { t } = useI18n()
   const getRoleConfig = () => {
@@ -67,17 +67,17 @@ function MessageItem({ message, index }: { message: Message; index: number }) {
   )
 }
 
-// Messages 预览主组件
+// Messages preview main component
 export function MessagesPreview({ contextPreview }: MessagesPreviewProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const { t } = useI18n()
 
-  // 尝试解析 context_preview
+  // Attempt to parse context_preview
   let messages: Message[] = []
   let isStructured = false
   let parseError: Error | null = null
 
-  // 添加调试信息
+  // Add debug info
   console.log('🔍 MessagesPreview Debug:', {
     contextPreviewType: typeof contextPreview,
     contextPreview: contextPreview,
@@ -90,54 +90,54 @@ export function MessagesPreview({ contextPreview }: MessagesPreviewProps) {
     if (Array.isArray(contextPreview)) {
       messages = contextPreview
       isStructured = true
-      console.log('✅ 直接解析为数组成功，消息数量:', messages.length)
+      console.log('✅ Directly parsed as array, count:', messages.length)
     } else if (typeof contextPreview === 'string') {
-      // 尝试解析字符串形式的数组
+      // Attempt to parse string array
       try {
-        // 首先尝试标准 JSON 解析
+        // First try standard JSON parsing
         const parsed = JSON.parse(contextPreview)
         if (Array.isArray(parsed)) {
           messages = parsed
           isStructured = true
-          console.log('✅ JSON.parse 解析成功，消息数量:', messages.length)
+          console.log('✅ JSON.parse success, count:', messages.length)
         }
       } catch (jsonError) {
-        // 如果标准 JSON 解析失败，尝试修复单引号问题
-        console.log('⚠️ JSON.parse 失败，尝试修复单引号:', jsonError instanceof Error ? jsonError.message : String(jsonError))
+        // If standard JSON parsing fails, try to fix single quotes
+        console.log('⚠️ JSON.parse failed, trying to fix single quotes:', jsonError instanceof Error ? jsonError.message : String(jsonError))
         try {
-          // 将单引号替换为双引号，但要注意避免替换内容中的单引号
+          // Replace single quotes with double quotes, but be careful not to replace single quotes within content
           const fixedJson = contextPreview
-            .replace(/'/g, '"')  // 简单替换所有单引号为双引号
-            .replace(/""/g, '\\"')  // 修复双引号转义
+            .replace(/'/g, '"')  // Simple replacement of all single quotes with double quotes
+            .replace(/""/g, '\\"')  // Fix double quote escaping
 
           const parsed = JSON.parse(fixedJson)
           if (Array.isArray(parsed)) {
             messages = parsed
             isStructured = true
-            console.log('✅ 修复后解析成功，消息数量:', messages.length)
+            console.log('✅ Parsed successfully after fix, count:', messages.length)
           }
         } catch (fixError) {
           parseError = fixError instanceof Error ? fixError : new Error(String(fixError))
-          console.log('❌ 修复后解析仍然失败:', parseError.message)
+          console.log('❌ Parse failed even after fix:', parseError.message)
         }
       }
     } else if (contextPreview && typeof contextPreview === 'object') {
-      // 处理可能的对象格式
+      // Handle possible object format
       if (contextPreview.messages && Array.isArray(contextPreview.messages)) {
         messages = contextPreview.messages
         isStructured = true
-        console.log('✅ 对象格式解析成功，消息数量:', messages.length)
+        console.log('✅ Object format parsed successfully, count:', messages.length)
       }
     }
   } catch (e) {
     parseError = e instanceof Error ? e : new Error(String(e))
-    console.log('❌ 解析失败:', parseError.message)
+    console.log('❌ Parse failed:', parseError.message)
   }
 
-  // 直接显示所有消息
+  // Directly display all messages
   const displayMessages = messages
 
-  // 如果不是结构化的消息，显示原始内容
+  // If not structured messages, show raw content
   if (!isStructured || messages.length === 0) {
     return (
       <Card className="border-border">
@@ -190,7 +190,7 @@ export function MessagesPreview({ contextPreview }: MessagesPreviewProps) {
 
         {isExpanded && (
           <div className="space-y-2">
-            {/* 消息统计 */}
+            {/* Message statistics */}
             <div className="grid grid-cols-3 gap-2 mb-3">
               <div className="text-center p-2 bg-purple-500/10 rounded">
                 <div className="text-xs text-purple-500">{t('agent.logs.messagesPreview.labels.role.system')}</div>
@@ -212,7 +212,7 @@ export function MessagesPreview({ contextPreview }: MessagesPreviewProps) {
               </div>
             </div>
 
-            {/* 消息列表 */}
+            {/* Message list */}
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {displayMessages.map((message, index) => (
                 <MessageItem key={index} message={message} index={index} />

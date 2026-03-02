@@ -14,13 +14,13 @@ export function JSONSyntaxHighlighter({ data, className = "" }: JSONSyntaxHighli
   const { themeName } = useTheme()
 
   useEffect(() => {
-    // 动态加载适合当前主题的语法高亮样式
+    // Dynamically load syntax highlighting styles suitable for the current theme
     const loadThemeStyle = async () => {
-      // 移除之前可能加载的样式
+      // Remove previously loaded styles
       const existingStyles = document.querySelectorAll('link[data-highlight-theme]')
       existingStyles.forEach(style => style.remove())
 
-      // 根据主题选择合适的样式
+      // Select appropriate style based on theme
       const theme = themeName === 'light' ? 'github' : 'github-dark'
       const link = document.createElement('link')
       link.rel = 'stylesheet'

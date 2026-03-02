@@ -78,7 +78,7 @@ function GeneratingIndicator({latestTitle, taskStatus, isPlanning}: {latestTitle
           <span className="dot" />
         </span>
       )}
-      {/* 波浪动画样式 */}
+      {/* Wave animation style */}
       <style jsx>{`
         .dot {
           width: 4px;
@@ -126,7 +126,7 @@ export function ChatMessage({
     Array.isArray(traceEvents) &&
     traceEvents.length > 0;
 
-  // 将事件/动作映射到 i18n 文案 key
+  // Map event/action to i18n key
   const getEventTitle = (e: TraceEvent | undefined) => {
     if (!e) return "";
     const type = e.event_type || "";

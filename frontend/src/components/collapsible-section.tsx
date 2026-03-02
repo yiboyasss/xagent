@@ -38,7 +38,7 @@ interface PlanMemoryDetailsProps {
   memoryCategory?: string
 }
 
-// 通用的折叠组件
+// Common collapsible component
 export function CollapsibleSection({
   title,
   icon,

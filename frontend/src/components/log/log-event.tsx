@@ -22,14 +22,14 @@ interface LogEventProps {
   event: TraceEvent
 }
 
-// 通用日志摘要组件
+// Common log summary component
 function LogSummary({ event }: LogEventProps) {
   const data = event.data as Record<string, any> || {}
   const action = data.action || event.event_type || null
   const stepName = data.step_name || data.name || ''
   const { t } = useI18n()
 
-  // 根据动作类型选择图标和颜色
+  // Select icon and color based on action type
   const getActionConfig = () => {
     const configs: Record<string, { icon: React.ReactNode, color: string, labelKey: string }> = {
       "步骤开始": { icon: <Play className="h-4 w-4" />, color: "text-blue-500", labelKey: "agent.logs.event.labels.start" },
@@ -91,7 +91,7 @@ function LogSummary({ event }: LogEventProps) {
 
     const config = configs[action]
     if (!config) {
-      console.log('🔴🔴🔴 未知操作 🔴🔴🔴', event)
+      console.log('🔴🔴🔴 Unknown action 🔴🔴🔴', event)
       return { icon: <Info className="h-4 w-4" />, color: "text-red-500", labelKey: "agent.logs.event.labels.unknown" }
     }
     return config
@@ -164,7 +164,7 @@ function LogSummary({ event }: LogEventProps) {
 
   return (
     <div className="space-y-2">
-      {/* 主要信息行 */}
+      {/* Main information row */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className={config.color}>{config.icon}</span>
@@ -180,7 +180,7 @@ function LogSummary({ event }: LogEventProps) {
         </div>
       </div>
 
-      {/* 步骤名称行（如果有） */}
+      {/* Step name row (if any) */}
       {stepName && (
         <div className="flex items-center gap-2 pl-6">
           <span className="text-xs text-muted-foreground">{stepName}</span>
@@ -190,12 +190,12 @@ function LogSummary({ event }: LogEventProps) {
   )
 }
 
-// LLM调用详情组件
+// LLM call details component
 function LLMCallDetails({ data }: { data: Record<string, any> }) {
   const { t } = useI18n()
   return (
     <div className="space-y-4">
-      {/* 基本信息 */}
+      {/* Basic information */}
       <div className="grid grid-cols-2 gap-3">
         {data.model_name && (
           <div className="flex items-center gap-2">
@@ -212,12 +212,12 @@ function LLMCallDetails({ data }: { data: Record<string, any> }) {
         )}
       </div>
 
-      {/* 上下文预览 */}
+      {/* Context preview */}
       {data.context_preview && (
         <MessagesPreview contextPreview={data.context_preview} />
       )}
 
-      {/* 其他重要信息 */}
+      {/* Other important information */}
       {(data.temperature || data.max_tokens || data.top_p) && (
         <Card className="border-border">
           <div className="p-3">
@@ -249,7 +249,7 @@ function LLMCallDetails({ data }: { data: Record<string, any> }) {
         </Card>
       )}
 
-      {/* 完整数据 */}
+      {/* Full data */}
       <Card className="border-border">
         <div className="p-3">
           <h4 className="text-sm font-medium mb-2">{t('agent.logs.event.common.fullData')}</h4>
@@ -260,12 +260,12 @@ function LLMCallDetails({ data }: { data: Record<string, any> }) {
   )
 }
 
-// 工具调用详情组件
+// Tool call details component
 function ToolCallDetails({ data }: { data: Record<string, any> }) {
   const { t } = useI18n()
   return (
     <div className="space-y-4">
-      {/* 基本信息 */}
+      {/* Basic information */}
       <div className="grid grid-cols-2 gap-3">
         {data.tool_name && (
           <div className="flex items-center gap-2">
@@ -282,7 +282,7 @@ function ToolCallDetails({ data }: { data: Record<string, any> }) {
         )}
       </div>
 
-      {/* 工具参数 */}
+      {/* Tool parameters */}
       {data.tool_params && (
         <Card className="border-border">
           <div className="p-3">
@@ -295,7 +295,7 @@ function ToolCallDetails({ data }: { data: Record<string, any> }) {
         </Card>
       )}
 
-      {/* 完整数据 */}
+      {/* Full data */}
       <Card className="border-border">
         <div className="p-3">
           <h4 className="text-sm font-medium mb-2">{t('agent.logs.event.common.fullData')}</h4>
@@ -306,12 +306,12 @@ function ToolCallDetails({ data }: { data: Record<string, any> }) {
   )
 }
 
-// 上下文压缩详情组件
+// Context compression details component
 function CompactDetails({ data }: { data: Record<string, any> }) {
   const { t } = useI18n()
   return (
     <div className="space-y-4">
-      {/* 基本信息 */}
+      {/* Basic information */}
       <div className="grid grid-cols-2 gap-3">
         {data.compact_type && (
           <div className="flex items-center gap-2">
@@ -344,7 +344,7 @@ function CompactDetails({ data }: { data: Record<string, any> }) {
         )}
       </div>
 
-      {/* 压缩结果 */}
+      {/* Compression result */}
       {data.compacted_tokens && (
         <Card className="border-border">
           <div className="p-3">
@@ -366,7 +366,7 @@ function CompactDetails({ data }: { data: Record<string, any> }) {
         </Card>
       )}
 
-      {/* 错误信息 */}
+      {/* Error info */}
       {data.error && (
         <Card className="border-border border-red-200">
           <div className="p-3">
@@ -381,7 +381,7 @@ function CompactDetails({ data }: { data: Record<string, any> }) {
         </Card>
       )}
 
-      {/* 完整数据 */}
+      {/* Full data */}
       <Card className="border-border">
         <div className="p-3">
           <h4 className="text-sm font-medium mb-2">{t('agent.logs.event.common.fullData')}</h4>
@@ -392,12 +392,12 @@ function CompactDetails({ data }: { data: Record<string, any> }) {
   )
 }
 
-// 内存查询详情组件
+// Memory query details component
 function MemoryQueryDetails({ data }: { data: Record<string, any> }) {
   const { t } = useI18n()
   return (
     <div className="space-y-4">
-      {/* 基本信息 */}
+      {/* Basic information */}
       <div className="grid grid-cols-2 gap-3">
         {data.task && (
           <div className="flex items-center gap-2">
@@ -426,7 +426,7 @@ function MemoryQueryDetails({ data }: { data: Record<string, any> }) {
         )}
       </div>
 
-      {/* 相关记忆 */}
+      {/* Related memories */}
       {data.rawData?.memories && Array.isArray(data.rawData.memories) && data.rawData.memories.length > 0 && (
         <Card className="border-border">
           <div className="p-3">
@@ -450,7 +450,7 @@ function MemoryQueryDetails({ data }: { data: Record<string, any> }) {
         </Card>
       )}
 
-      {/* 完整数据 */}
+      {/* Full data */}
       <Card className="border-border">
         <div className="p-3">
           <h4 className="text-sm font-medium mb-2">{t('agent.logs.event.common.fullData')}</h4>
@@ -461,12 +461,12 @@ function MemoryQueryDetails({ data }: { data: Record<string, any> }) {
   )
 }
 
-// Skill 选择详情组件
+// Skill selection details component
 function SkillSelectDetails({ data }: { data: Record<string, any> }) {
   const { t } = useI18n()
   return (
     <div className="space-y-4">
-      {/* 基本信息 */}
+      {/* Basic information */}
       <div className="grid grid-cols-1 gap-3">
         {data.task && (
           <div className="flex items-start gap-2">
@@ -502,7 +502,7 @@ function SkillSelectDetails({ data }: { data: Record<string, any> }) {
         )}
       </div>
 
-      {/* 完整数据 */}
+      {/* Full data */}
       <Card className="border-border">
         <div className="p-3">
           <h4 className="text-sm font-medium mb-2">{t('agent.logs.event.common.fullData')}</h4>
@@ -513,12 +513,12 @@ function SkillSelectDetails({ data }: { data: Record<string, any> }) {
   )
 }
 
-// 通用详情组件
+// Common details component
 function GenericDetails({ data }: { data: Record<string, any> }) {
   const { t } = useI18n()
   return (
     <div className="space-y-4">
-      {/* 关键信息 */}
+      {/* Key information */}
       <div className="grid grid-cols-1 gap-2">
         {Object.entries(data).map(([key, value]) => {
           if (['action', 'step_name', 'timestamp'].includes(key)) return null
@@ -537,7 +537,7 @@ function GenericDetails({ data }: { data: Record<string, any> }) {
         })}
       </div>
 
-      {/* 完整数据 */}
+      {/* Full data */}
       <Card className="border-border">
         <div className="p-3">
           <h4 className="text-sm font-medium mb-2">{t('agent.logs.event.common.fullData')}</h4>
@@ -548,18 +548,18 @@ function GenericDetails({ data }: { data: Record<string, any> }) {
   )
 }
 
-// 主要的日志事件组件
+// Main log event component
 export function LogEvent({ event }: LogEventProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const data = event.data as Record<string, any> || {}
   const action = data.action || event.event_type || null
 
-  // 如果是未知操作，直接不显示
+  // If unknown action, do not display
   if (!action) {
     return null
   }
 
-  // 根据动作类型选择详情组件
+  // Select details component based on action type
   const getDetailsComponent = () => {
     const type = event.event_type || ''
     const actLower = typeof action === 'string' ? action.toLowerCase() : ''

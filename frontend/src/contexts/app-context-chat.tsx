@@ -174,7 +174,7 @@ interface AppState {
     content: string
     isLoading: boolean
     error: string | null
-    // 支持多个文件预览切换
+    // Support switching between multiple file previews
     availableFiles: Array<{ filePath: string; fileName: string }>
     currentIndex: number
   }
@@ -417,7 +417,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return initialState
 
     case "OPEN_FILE_PREVIEW":
-      // 支持传入单个文件或多个文件列表
+      // Support passing single file or multiple file list
       const files = action.payload.files || [{ filePath: action.payload.filePath, fileName: action.payload.fileName }]
       const currentIndex = action.payload.index || 0
 
@@ -1022,9 +1022,9 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
               </>
             )
 
-            // 处理计划中的步骤数据，包含依赖关系
+            // Process step data in the plan, including dependencies
             if (planData.steps && Array.isArray(planData.steps)) {
-              // 获取现有步骤，以便保留时间信息
+              // Get existing steps to preserve timing information
               const existingSteps = currentState.steps
               const existingStepsMap = new Map<string, StepExecution>()
               existingSteps.forEach(step => existingStepsMap.set(step.id, step))
@@ -1035,11 +1035,11 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
                   id: step.id,
                   name: step.name || step.id,
                   description: step.description || "",
-                  // 优先使用现有步骤的状态，如果没有则使用 plan 中的状态
+                  // Prioritize existing step status, otherwise use status from plan
                   status: existingStep?.status || step.status || "pending",
                   tool_names: step.tool_name ? [step.tool_name] : step.tool_names || [],
                   dependencies: step.dependencies || [],
-                  // 优先使用现有步骤的时间信息
+                  // Prioritize timing information from existing steps
                   started_at: existingStep?.started_at || step.started_at,
                   completed_at: existingStep?.completed_at || step.completed_at,
                   result_data: step.result_data,
@@ -1169,7 +1169,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
               })
             }
           }
-          // Compact Events - 都发生在step内部，显示在右侧面板的对应步骤中
+          // Compact Events - All occur within a step, displayed in the corresponding step in the right panel
           else if (eventType === "action_start_compact") {
             const stepId = eventData.step_id
             if (stepId) {
@@ -1216,8 +1216,8 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
           else if (eventType === "dag_step_start") {
             const stepName = eventData.step_name || eventData.name || eventData.title || `${t('agent.logs.event.messages.execStepPrefix')}${eventData.step_id || t('common.errors.unknown')}`
 
-            // dag_step_start有step_id，应该更新右侧步骤数据，不在左侧显示消息
-            // 先查找现有步骤，保留依赖关系
+            // dag_step_start has step_id, should update the right-side step data, do not display message on the left
+            // Find existing step first, preserve dependencies
             const existingStep = state.steps.find(s => s.id === (message.step_id || eventData.step_id || stepName))
             const step: StepExecution = {
               id: message.step_id || eventData.step_id || stepName,
@@ -1237,7 +1237,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
             }
             dispatch({ type: "ADD_STEP", payload: step })
 
-            // 同时添加到 traceEvents 用于显示执行日志
+            // Also add to traceEvents for displaying execution logs
             const traceEvent: TraceEvent = {
               event_id: generateMessageId(`trace-step-start`),
               event_type: eventType,
@@ -1256,7 +1256,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
             const stepName = eventData.step_name || eventData.name || eventData.title || `${t('agent.logs.event.messages.execStepPrefix')}${eventData.step_id || t('common.errors.unknown')}`
             console.log('✅ dag_step_end:', stepName, JSON.stringify(message))
 
-            // dag_step_end有step_id，应该更新右侧步骤数据，不在左侧显示消息
+            // dag_step_end has step_id, should update right-side step data, do not display message on the left
             const step: StepExecution = {
               id: message.step_id || eventData.step_id || stepName,
               name: stepName,
@@ -1276,7 +1276,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
             }
             dispatch({ type: "ADD_STEP", payload: step })
 
-            // 同时添加到 traceEvents 用于显示执行日志
+            // Also add to traceEvents for displaying execution logs
             const traceEvent: TraceEvent = {
               event_id: generateMessageId(`trace-step-end`),
               event_type: eventType,
@@ -1299,7 +1299,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
             const stepId = message.step_id || eventData.step_id || stepName
             const existingStep = state.steps.find(s => s.id === stepId)
 
-            // 更新 DAG 执行状态为失败
+            // Update DAG execution state to failed
             if (state.dagExecution) {
               const updatedDAGExecution = {
                 ...state.dagExecution,
@@ -1309,7 +1309,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
               dispatch({ type: "SET_DAG_EXECUTION", payload: updatedDAGExecution })
             }
 
-            // 更新步骤状态
+            // Update step status
             const step: StepExecution = {
               id: stepId,
               name: stepName,
@@ -1328,7 +1328,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
             }
             dispatch({ type: "ADD_STEP", payload: step })
 
-            // 添加到左侧消息
+            // Add to left panel messages
             dispatch({
               type: "ADD_MESSAGE",
               payload: {
@@ -1345,7 +1345,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
               }
             })
 
-            // 同时添加到 traceEvents 用于显示执行日志
+            // Also add to traceEvents for displaying execution logs
             const traceEvent: TraceEvent = {
               event_id: generateMessageId(`trace-step-failed`),
               event_type: eventType,
@@ -1378,7 +1378,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
           // Task-level LLM Call Events - show as messages (these don't have step_id)
           else if (eventType === "task_start_llm") {
             const modelName = eventData.model_name || "LLM"
-            const taskType = eventData.task_type || "LLM调用"
+            const taskType = eventData.task_type || "LLM Call"
 
             // Special handling for final answer generation
             if (eventData.task_type === "final_answer_generation") {
@@ -1438,7 +1438,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
           // Task-level LLM Call End Events
           } else if (eventType === "task_end_llm") {
             const modelName = eventData.model_name || "LLM"
-            const taskType = eventData.task_type || "LLM调用"
+            const taskType = eventData.task_type || "LLM Call"
 
             // Special handling for final answer generation completion
             if (eventData.task_type === "final_answer_generation") {
@@ -1531,9 +1531,9 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
           else if (eventType === "llm_call_start") {
             if (message.step_id) {
               const modelName = eventData.model_name || "LLM"
-              const taskType = eventData.task_type || "LLM调用"
+              const taskType = eventData.task_type || "LLM Call"
 
-              // 添加到 traceEvents 用于步骤执行日志
+              // Add to traceEvents for step execution logs
               const traceEvent: TraceEvent = {
                 event_id: generateMessageId(`trace-llm-start`),
                 event_type: eventType,
@@ -1551,9 +1551,9 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
           } else if (eventType === "llm_call_end") {
             if (message.step_id) {
               const modelName = eventData.model_name || "LLM"
-              const taskType = eventData.task_type || "LLM调用"
+              const taskType = eventData.task_type || "LLM Call"
 
-              // 添加到 traceEvents 用于步骤执行日志
+              // Add to traceEvents for step execution logs
               const traceEvent: TraceEvent = {
                 event_id: generateMessageId(`trace-llm-end`),
                 event_type: eventType,
@@ -1573,7 +1573,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
           // LLM Call Info Events - these are step-level events
           else if (eventType === "llm_call_info") {
             const modelName = eventData.model_name || "LLM"
-            const taskType = eventData.task_type || "LLM调用"
+            const taskType = eventData.task_type || "LLM Call"
 
             if (!message.step_id) {
               dispatch({
@@ -1587,7 +1587,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
                 }
               })
             } else {
-              // 添加到 traceEvents 用于步骤执行日志
+              // Add to traceEvents for step execution logs
               const traceEvent: TraceEvent = {
                 event_id: generateMessageId(`trace-llm-info`),
                 event_type: eventType,
@@ -1625,7 +1625,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
                 }
               })
             } else {
-              // 添加到 traceEvents 用于步骤执行日志
+              // Add to traceEvents for step execution logs
               const traceEvent: TraceEvent = {
                 event_id: generateMessageId(`trace-llm-result`),
                 event_type: eventType,
@@ -1663,7 +1663,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
                 }
               })
             } else {
-              // 添加到 traceEvents 用于步骤执行日志
+              // Add to traceEvents for step execution logs
               const traceEvent: TraceEvent = {
                 event_id: generateMessageId(`trace-tool-start`),
                 event_type: eventType,
@@ -1698,7 +1698,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
                 }
               })
             } else {
-              // 添加到 traceEvents 用于步骤执行日志
+              // Add to traceEvents for step execution logs
               const traceEvent: TraceEvent = {
                 event_id: generateMessageId(`trace-tool-end`),
                 event_type: eventType,
@@ -1713,7 +1713,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
               dispatch({ type: "ADD_TRACE_EVENT", payload: traceEvent })
             }
           } else if (eventType === "tool_execution_failed") {
-            const toolName = eventData.tool_name || "工具"
+            const toolName = eventData.tool_name || "Tool"
             const stepId = message.step_id || eventData.step_id
 
             if (!stepId) {
@@ -1733,7 +1733,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
                 }
               })
             } else {
-              // 添加到 traceEvents 用于步骤执行日志
+              // Add to traceEvents for step execution logs
               const traceEvent: TraceEvent = {
                 event_id: generateMessageId(`trace-tool-failed`),
                 event_type: eventType,
@@ -1763,7 +1763,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
                 }
               })
             } else {
-              // 添加到 traceEvents 用于步骤执行日志
+              // Add to traceEvents for step execution logs
               const traceEvent: TraceEvent = {
                 event_id: generateMessageId(`trace-tool-using`),
                 event_type: eventType,
@@ -1784,7 +1784,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
             const { result, success, metadata } = eventData
             console.log('🔍 task_completion event:', { result, success, metadata, hasResult: !!(result && result.trim() !== '') })
 
-            // 解析 result 字符串为对象
+            // Parse result string into object
             let resultData = {}
             if (typeof result === 'string') {
               try {
@@ -1799,19 +1799,19 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
               resultData = { output: result }
             }
 
-            // 1. 输出元信息（排除 output 和 file_outputs 和 history）
+            // 1. Output meta info (excluding output, file_outputs, and history)
             const metaInfo = { ...resultData }
             delete (metaInfo as any).output
             delete (metaInfo as any).file_outputs
             delete (metaInfo as any).history
             const hasMetaInfo = Object.keys(metaInfo).length > 0 && metaInfo !== null && metaInfo !== undefined
 
-            // 1.5. 从 history 中提取步骤数据并更新 state.steps
+            // 1.5. Extract step data from history and update state.steps
             const history = (resultData as any).history
             if (history && Array.isArray(history) && history.length > 0) {
-              const latestIteration = history[history.length - 1] // 最新的迭代（最后一个）
+              const latestIteration = history[history.length - 1] // Latest iteration (the last one)
               if (latestIteration.plan && latestIteration.plan.steps && Array.isArray(latestIteration.plan.steps)) {
-                // 创建 results 映射，方便快速查找
+                // Create results map for quick lookup
                 const resultsMap = new Map<string, any>()
                 if (latestIteration.results && Array.isArray(latestIteration.results)) {
                   latestIteration.results.forEach((result: any) => {
@@ -1819,61 +1819,61 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
                   })
                 }
 
-                // 获取 active_branches，用于判断哪些步骤被跳过
+                // Get active_branches to determine which steps are skipped
                 const activeBranches = latestIteration.plan?.active_branches || {}
 
-                // 获取现有步骤，以便保留时间信息
+                // Get existing steps to preserve timing information
                 const existingSteps = currentState.steps
                 const existingStepsMap = new Map<string, StepExecution>()
                 existingSteps.forEach(step => existingStepsMap.set(step.id, step))
 
                 const steps: StepExecution[] = latestIteration.plan.steps.map((step: any) => {
-                  // 从 results 中查找对应的执行结果
+                  // Find corresponding execution result from results
                   const stepResult = resultsMap.get(step.id)
-                  // 查找现有步骤
+                  // Find existing step
                   const existingStep = existingStepsMap.get(step.id)
 
-                  // 如果有执行结果，使用执行结果的状态；否则使用计划中的状态
+                  // If execution result exists, use its status; otherwise use status from plan
                   let finalStatus = step.status || "pending"
                   let startedAt = step.started_at
                   let completedAt = step.completed_at
                   let resultData = step.result
 
                   if (stepResult) {
-                    // 根据 result 字段判断状态
+                    // Determine status based on result field
                     if (stepResult.result !== undefined && stepResult.result !== null) {
                       finalStatus = "completed"
                     }
-                    // 无论 result 是否存在，都使用 stepResult 中的时间信息（如果存在）
+                    // Use timing info from stepResult regardless of result existence (if present)
                     if (stepResult.started_at) startedAt = stepResult.started_at
                     if (stepResult.completed_at) completedAt = stepResult.completed_at
-                    // 如果 stepResult 有 result 字段，使用它
+                    // If stepResult has result field, use it
                     if (stepResult.result !== undefined && stepResult.result !== null) {
                       resultData = stepResult.result
                     }
                   }
 
-                  // 检查是否应该被跳过：如果步骤需要特定分支，但该分支没有被激活
+                  // Check if should be skipped: if step requires specific branch but it is not activated
                   if (step.required_branch) {
-                    // 找到这个步骤依赖的条件节点
+                    // Find condition node this step depends on
                     const dependencyNodeId = step.dependencies && step.dependencies.length > 0 ? step.dependencies[0] : null
                     if (dependencyNodeId) {
                       const activeBranch = activeBranches[dependencyNodeId]
                       if (activeBranch && activeBranch !== step.required_branch) {
-                        // 该分支没有被激活，所以这个步骤被跳过
+                        // Branch not activated, so this step is skipped
                         finalStatus = "skipped"
                       }
                     }
                   }
 
-                  // 优先使用现有步骤的信息（如果新数据中没有明确的信息）
+                  // Prioritize existing step info (if no explicit info in new data)
                   if (existingStep) {
-                    // 优先使用现有步骤的时间信息
+                    // Prioritize existing step timing info
                     if (!startedAt && existingStep.started_at) startedAt = existingStep.started_at
                     if (!completedAt && existingStep.completed_at) completedAt = existingStep.completed_at
 
-                    // 优先使用现有步骤的状态（如果新步骤状态是 pending 或 running）
-                    // 这确保了从 dag_step_end 事件获得的状态不会被 plan 数据覆盖
+                    // Prioritize existing step status (if new step status is pending or running)
+                    // This ensures status from dag_step_end event is not overwritten by plan data
                     if (finalStatus === "pending" || finalStatus === "running") {
                       if (existingStep.status && existingStep.status !== "pending" && existingStep.status !== "running") {
                         finalStatus = existingStep.status
@@ -1930,7 +1930,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
               }
             }
 
-            // 2. 输出文件输出
+            // 2. Output file outputs
             const fileOutputsData = (resultData as any).file_outputs
             if (fileOutputsData && fileOutputsData.length > 0) {
               const fileCount = fileOutputsData.length
@@ -2008,7 +2008,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
               }
             }
 
-            // 3. 输出执行结果
+            // 3. Output execution result
             const finalOutput = (resultData as any).output
             if (finalOutput && finalOutput.trim() !== '') {
               const resultContent = (
@@ -2076,12 +2076,12 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
 
           // Error Events
           else if (eventType === "trace_error") {
-            // 优先使用 error_message，如果没有则使用 error，最后使用默认消息
+            // Prioritize error_message, if not present use error, finally use default message
             const errorMessage = eventData.error_message || eventData.error || 'Trace error occurred'
             const stepName = eventData.step_name || eventData.name || `${t('agent.logs.event.messages.execStepPrefix')}${eventData.step_id || t('common.errors.unknown')}`
             const stepId = message.step_id || eventData.step_id
 
-            // 调试信息
+            // Debug information
             console.trace('trace_error debug:', {
               message_step_id: message.step_id,
               eventData_step_id: eventData.step_id,
@@ -2092,7 +2092,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
               errorMessage: errorMessage
             })
 
-            // 只添加到 trace events 用于显示执行日志，不将步骤标记为失败
+            // Only add to trace events for displaying execution logs, do not mark step as failed
             if (stepId && stepId !== 'unknown') {
               const traceEvent: TraceEvent = {
                 event_id: generateMessageId(`trace-error-${stepId}`),
@@ -2111,8 +2111,8 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
               dispatch({ type: "ADD_TRACE_EVENT", payload: traceEvent })
             }
 
-            // 对于步骤相关的错误，不在左侧面板显示，只在右侧面板显示
-            // 只在左侧显示非步骤相关的全局错误
+            // For step-related errors, do not display in left panel, only in right panel
+            // Only display non-step-related global errors in left panel
             if (!stepId || stepId === 'unknown') {
               dispatch({
                 type: "ADD_MESSAGE",
@@ -2165,7 +2165,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
             })
           }
 
-          // React Pattern Events - 这些应该显示在右侧面板
+          // ReAct Pattern Events - these should be displayed in the right panel
           else if (eventType === "react_task_start" || eventType === "task_start_react") {
             // ReAct pattern often doesn't emit user_message event, so we extract it from task data
             const taskContent = eventData.task || eventData.description || ""
@@ -2181,7 +2181,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
               })
             }
 
-            // 添加到 trace events 用于显示执行日志
+            // Add to trace events for displaying execution logs
             const traceEvent: TraceEvent = {
               event_id: generateMessageId("react-task-start"),
               event_type: eventType,
@@ -2301,7 +2301,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
             }
             dispatch({ type: "ADD_TRACE_EVENT", payload: traceEvent })
           } else if (eventType === "react_task_end" || eventType === "task_end_react") {
-            // 添加到 trace events 用于显示执行日志
+            // Add to trace events for execution log display
             const traceEvent: TraceEvent = {
               event_id: generateMessageId("react-task-end"),
               event_type: eventType,
@@ -2317,11 +2317,11 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
             const stepName = eventData.step_name || 'unknown'
             const stepId = `react-${stepName}`
 
-            // 创建或更新步骤
+            // Create or update step
             const step: StepExecution = {
               id: stepId,
               name: stepName,
-              description: `ReAct步骤: ${stepName}`,
+              description: `ReAct Step: ${stepName}`,
               status: "running",
               tool_names: eventData.tool_name ? [eventData.tool_name] : eventData.tool_names || [],
               dependencies: [],
@@ -2333,7 +2333,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
             }
             dispatch({ type: "ADD_STEP", payload: step })
 
-            // 添加到 trace events 用于显示执行日志
+            // Add to trace events for displaying execution logs
             const traceEvent: TraceEvent = {
               event_id: generateMessageId(`react-step-start-${stepId}`),
               event_type: eventType,
@@ -2351,15 +2351,15 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
             const stepName = eventData.step_name || 'unknown'
             const stepId = `react-${stepName}`
 
-            // 更新步骤状态
+            // Update step status
             const step: StepExecution = {
               id: stepId,
               name: stepName,
-              description: `ReAct步骤: ${stepName}`,
+              description: `ReAct Step: ${stepName}`,
               status: "completed",
               tool_names: eventData.tool_name ? [eventData.tool_name] : eventData.tool_names || [],
               dependencies: [],
-              started_at: undefined, // 保持原有的开始时间
+              started_at: undefined, // Preserve original start time
               completed_at: message.timestamp,
               result_data: eventData.result_data,
               step_data: eventData,
@@ -2367,7 +2367,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
             }
             dispatch({ type: "ADD_STEP", payload: step })
 
-            // 添加到 trace events 用于显示执行日志
+            // Add to trace events for execution log display
             const traceEvent: TraceEvent = {
               event_id: generateMessageId(`react-step-end-${stepId}`),
               event_type: eventType,
@@ -2409,13 +2409,13 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
               }
               dispatch({ type: "ADD_TRACE_EVENT", payload: traceEvent })
           }
-          // Memory Events - 根据是否有step_id决定显示位置
+          // Memory Events - Determine display location based on step_id
           else if (eventType === "task_start_memory_generate") {
             const stepId = eventData.step_id
 
-            // 如果有step_id，添加到对应的步骤；否则不显示（跳过无用的开始事件）
+            // If step_id exists, add to corresponding step; otherwise do not display (skip useless start events)
             if (stepId) {
-              // ReAct pattern - 显示在右侧面板的对应步骤中
+              // ReAct pattern - Display in corresponding step in right panel
               const traceEvent: TraceEvent = {
                 event_id: generateMessageId(`memory-generate-start-${stepId}`),
                 event_type: eventType,
@@ -2432,14 +2432,14 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
               }
               dispatch({ type: "ADD_TRACE_EVENT", payload: traceEvent })
             }
-            // 没有step_id的情况直接跳过，不显示开始事件
+            // Skip if no step_id, do not display start event
           } else if (eventType === "task_end_memory_generate") {
             const taskId = eventData.task_id || "unknown"
             const stepId = eventData.step_id
 
-            // 如果有step_id，添加到对应的步骤；否则显示在左侧面板
+            // If step_id exists, add to corresponding step; otherwise display in left panel
             if (stepId) {
-              // ReAct pattern - 显示在右侧面板的对应步骤中
+              // ReAct pattern - Display in corresponding step in right panel
               const traceEvent: TraceEvent = {
                 event_id: generateMessageId(`memory-generate-end-${stepId}`),
                 event_type: eventType,
@@ -2456,7 +2456,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
               }
               dispatch({ type: "ADD_TRACE_EVENT", payload: traceEvent })
             } else {
-              // DAG plan-execute pattern - 显示在左侧面板
+              // DAG plan-execute pattern - Display in left panel
               const shouldStore = eventData.should_store || false
               const reason = eventData.reason || ""
               const source = eventData.source || "unknown"
@@ -2513,9 +2513,9 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
             const taskId = eventData.task_id || "unknown"
             const stepId = eventData.step_id
 
-            // 如果有step_id，添加到对应的步骤；否则显示在左侧面板
+            // If step_id exists, add to corresponding step; otherwise display in left panel
             if (stepId) {
-              // ReAct pattern - 显示在右侧面板的对应步骤中
+              // ReAct pattern - Display in corresponding step in right panel
               const traceEvent: TraceEvent = {
                 event_id: generateMessageId(`memory-store-start-${stepId}`),
                 event_type: eventType,
@@ -2531,7 +2531,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
               }
               dispatch({ type: "ADD_TRACE_EVENT", payload: traceEvent })
             } else {
-              // DAG plan-execute pattern - 显示在左侧面板
+              // DAG plan-execute pattern - Display in left panel
               dispatch({
                 type: "ADD_MESSAGE",
                 payload: {
@@ -2562,9 +2562,9 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
             const taskId = eventData.task_id || "unknown"
             const stepId = eventData.step_id
 
-            // 如果有step_id，添加到对应的步骤；否则显示在左侧面板
+            // If step_id exists, add to corresponding step; otherwise display in left panel
             if (stepId) {
-              // ReAct pattern - 显示在右侧面板的对应步骤中
+              // ReAct pattern - Display in corresponding step in right panel
               const traceEvent: TraceEvent = {
                 event_id: generateMessageId(`memory-store-end-${stepId}`),
                 event_type: eventType,
@@ -2580,7 +2580,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
               }
               dispatch({ type: "ADD_TRACE_EVENT", payload: traceEvent })
             } else {
-              // DAG plan-execute pattern - 显示在左侧面板
+              // DAG plan-execute pattern - Display in left panel
               const storageSuccess = eventData.storage_success || false
               const reason = eventData.reason || ""
               const decision = eventData.decision || "unknown"
@@ -2634,9 +2634,9 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
             const taskId = eventData.task_id || "unknown"
             const stepId = eventData.step_id
 
-            // 如果有step_id，添加到对应的步骤；否则显示在左侧面板
+            // If step_id exists, add to corresponding step; otherwise display in left panel
             if (stepId) {
-              // ReAct pattern - 显示在右侧面板的对应步骤中
+              // ReAct pattern - Display in corresponding step in right panel
               const traceEvent: TraceEvent = {
                 event_id: generateMessageId(`memory-retrieve-start-${stepId}`),
                 event_type: eventType,
@@ -2645,15 +2645,15 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
                 data: {
                   action: t('agent.logs.event.actions.memoryQuery'),
                   message: '🔍 ' + t('agent.logs.event.actions.memoryQuery'),
-                  // 显示完整数据
+                  // Display full data
                   rawData: eventData,
                 }
               }
               dispatch({ type: "ADD_TRACE_EVENT", payload: traceEvent })
             } else {
-              // DAG plan-execute pattern - 显示在左侧面板
+              // DAG plan-execute pattern - Display in left panel
               const stepId = eventData.step_id || "unknown"
-
+  
               // Memory retrieval start event
               dispatch({
                 type: "ADD_MESSAGE",
@@ -2685,9 +2685,9 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
             const taskId = eventData.task_id || "unknown"
             const stepId = eventData.step_id
 
-            // 如果有step_id，添加到对应的步骤；否则显示在左侧面板
+            // If step_id exists, add to corresponding step; otherwise display in left panel
             if (stepId) {
-              // ReAct pattern - 显示在右侧面板的对应步骤中
+              // ReAct pattern - Display in corresponding step in right panel
               const traceEvent: TraceEvent = {
                 event_id: generateMessageId(`memory-retrieve-end-${stepId}`),
                 event_type: eventType,
@@ -2696,13 +2696,13 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
                 data: {
                   action: t('agent.logs.event.actions.memoryQueryCompleted'),
                   message: '🔍 ' + t('agent.logs.event.actions.memoryQueryCompleted'),
-                  // 显示完整数据
+                  // Display full data
                   rawData: eventData,
                 }
               }
               dispatch({ type: "ADD_TRACE_EVENT", payload: traceEvent })
             } else {
-              // DAG plan-execute pattern - 显示在左侧面板
+              // DAG plan-execute pattern - Display in left panel
               const stepId = eventData.step_id || "unknown"
               const memoriesFound = eventData.memories_found || 0
               const memoriesUsed = eventData.memories_used || 0
@@ -2835,11 +2835,11 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
 
           // Default: add as trace event
           else {
-            console.trace('原始 message:', JSON.stringify(message), '处理函数: handleMessage (unhandled event_type:', eventType, ')')
+            console.trace('Original message:', JSON.stringify(message), 'Handler: handleMessage (unhandled event_type:', eventType, ')')
                         dispatch({ type: "ADD_TRACE_EVENT", payload: traceEventData })
           }
         } else {
-          console.trace('原始 message:', JSON.stringify(message), '处理函数: handleMessage (no event_type, direct trace event)')
+          console.trace('Original message:', JSON.stringify(message), 'Handler: handleMessage (no event_type, direct trace event)')
           // Handle direct trace events (without event_type wrapper) - infer type from content
           // Check if this is DAG execution data
           if (traceEventData.phase && (traceEventData.current_plan !== undefined)) {
@@ -2964,7 +2964,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
         break
 
       case "chat_message":
-        console.trace('原始 message:', JSON.stringify(message), '处理函数: handleMessage (chat_message)')
+        console.trace('Original message:', JSON.stringify(message), 'Handler: handleMessage (chat_message)')
         const messageData = message.data as any
         dispatch({
           type: "ADD_MESSAGE",
@@ -2985,7 +2985,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
         })
         dispatch({ type: "TRIGGER_TASK_UPDATE" })
 
-        // 更新 DAG 执行状态为完成
+        // Update DAG execution status to completed
         if (state.dagExecution) {
           const updatedDAGExecution = {
             ...state.dagExecution,
@@ -3120,16 +3120,16 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
         }
         dispatch({ type: "ADD_STEP", payload: step })
 
-        // 更新 DAG 执行状态
-        // 根据步骤状态更新整体 DAG 状态
+        // Update DAG execution status
+        // Update overall DAG status based on step status
         if (state.dagExecution) {
           const updatedDAGExecution = { ...state.dagExecution }
 
-          // 根据步骤状态更新 DAG phase
+          // Update DAG phase based on step status
           if (stepInfo.status === "running") {
             updatedDAGExecution.phase = "executing" as const
           } else if (stepInfo.status === "completed") {
-            // 检查是否所有步骤都完成了
+            // Check if all steps are completed
             const allStepsCompleted = state.steps.every(step =>
               step.id === stepInfo.id ? stepInfo.status === "completed" : step.status === "completed"
             )
@@ -3142,7 +3142,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
             updatedDAGExecution.phase = "failed" as const
           }
 
-          // 更新时间戳
+          // Update timestamp
           updatedDAGExecution.updated_at = new Date().toISOString()
 
           dispatch({ type: "SET_DAG_EXECUTION", payload: updatedDAGExecution })
@@ -3155,20 +3155,20 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
 
 
       case "task_paused":
-        console.trace('原始 message:', JSON.stringify(message), '处理函数: handleMessage (task_paused)')
+        console.trace('Original message:', JSON.stringify(message), 'Handler: handleMessage (task_paused)')
         dispatch({ type: "UPDATE_TASK_STATUS", payload: { status: "paused" } })
         break
 
       case "task_resumed":
-        console.trace('原始 message:', JSON.stringify(message), '处理函数: handleMessage (task_resumed)')
+        console.trace('Original message:', JSON.stringify(message), 'Handler: handleMessage (task_resumed)')
         dispatch({ type: "UPDATE_TASK_STATUS", payload: { status: "running" } })
         break
 
       case "agent_error":
-        console.trace('原始 message:', JSON.stringify(message), '处理函数: handleMessage (agent_error)')
+        console.trace('Original message:', JSON.stringify(message), 'Handler: handleMessage (agent_error)')
         const errorData = message.data as { message?: string }
 
-        // 更新 DAG 执行状态为失败
+        // Update DAG execution status to failed
         if (state.dagExecution) {
           const updatedDAGExecution = {
             ...state.dagExecution,
@@ -3192,7 +3192,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
         break
 
       case "message_received":
-        console.trace('原始 message:', JSON.stringify(message), '处理函数: handleMessage (message_received)')
+        console.trace('Original message:', JSON.stringify(message), 'Handler: handleMessage (message_received)')
         // User message confirmation
         dispatch({ type: "SET_PROCESSING", payload: true })
         break

@@ -230,11 +230,11 @@ export function AgentInput({
     }
   }
 
-  // 允许在暂停状态下输入，用于调整执行计划
+  // Allow input in paused state, used for adjusting execution plan
   const isPaused = currentTask?.status === 'paused'
   const isSendDisabled = (!value.trim() && files.length === 0) || disabled || (!isPaused && isProcessing)
 
-  // 动态 placeholder
+  // Dynamic placeholder
   const dynamicPlaceholder = isPaused
     ? t('agent.input.placeholder.continueExecution')
     : placeholder

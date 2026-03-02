@@ -52,7 +52,7 @@ export function I18nProvider({
     }
   }
 
-  // 同步 <html lang> 属性
+  // Sync <html lang> attribute
   useEffect(() => {
     if (typeof document !== "undefined") {
       document.documentElement.lang = locale

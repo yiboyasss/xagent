@@ -511,7 +511,7 @@ export function RightPanel({
           <h2 className="text-xl font-semibold text-foreground">{t("agent.layout.right.titles.stepDetail")}</h2>
         </div>
 
-        {/* 步骤切换器 */}
+        {/* Step switcher */}
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">{t("agent.layout.right.labels.currentStep")}</span>
           <div className="flex items-center gap-2">

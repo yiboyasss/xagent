@@ -47,13 +47,13 @@ export function RegisterPage() {
     setError("")
     setSuccess("")
 
-    // 验证密码匹配
+    // Verify password match
     if (formData.password !== formData.confirmPassword) {
       setError(t("register.alerts.password_mismatch"))
       return
     }
 
-    // 验证密码长度
+    // Verify password length
     if (formData.password.length < 6) {
       setError(t("register.alerts.password_too_short"))
       return
@@ -97,7 +97,7 @@ export function RegisterPage() {
       ...prev,
       [e.target.name]: e.target.value
     }))
-    // 清除错误信息
+    // Clear error message
     if (error) setError("")
     if (success) setSuccess("")
   }

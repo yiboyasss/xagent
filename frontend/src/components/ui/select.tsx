@@ -29,7 +29,7 @@ export function Select({ value, onValueChange, options = [], placeholder, classN
   const buttonRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // 处理点击外部关闭下拉框
+  // Handle clicking outside to close the dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -49,14 +49,14 @@ export function Select({ value, onValueChange, options = [], placeholder, classN
     }
   }, [open])
 
-  // 检查下拉菜单应该向上还是向下展开
+  // Check if the dropdown menu should expand up or down
   useEffect(() => {
     if (open && buttonRef.current) {
       const buttonRect = buttonRef.current.getBoundingClientRect()
-      const spaceBelow = window.innerHeight - buttonRect.bottom - 50 // 50px 为预留空间
+      const spaceBelow = window.innerHeight - buttonRect.bottom - 50 // 50px is reserved space
       const spaceAbove = buttonRect.top - 50
 
-      // 如果下方空间不足且上方空间更充足，则向上展开
+      // If there is not enough space below and more space above, expand upwards
       if (spaceBelow < 200 && spaceAbove > spaceBelow) {
         setDropdownDirection('up')
       } else {
@@ -91,22 +91,22 @@ export function Select({ value, onValueChange, options = [], placeholder, classN
               {(selectedOption.isDefault || selectedOption.isSmallFast || selectedOption.isVisual || selectedOption.isCompact) && (
                 <div className="flex gap-1 flex-shrink-0">
                   {selectedOption.isDefault && (
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary">默认</span>
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary">Default</span>
                   )}
                   {selectedOption.isSmallFast && (
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500">快速</span>
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500">Fast</span>
                   )}
                   {selectedOption.isVisual && (
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-500">视觉</span>
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-500">Visual</span>
                   )}
                   {selectedOption.isCompact && (
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/10 text-green-500">长上下文</span>
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/10 text-green-500">Long Context</span>
                   )}
                 </div>
               )}
             </div>
           ) : (
-            <span className="text-muted-foreground">{placeholder || "请选择..."}</span>
+            <span className="text-muted-foreground">{placeholder || "Select..."}</span>
           )}
         </div>
         <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform flex-shrink-0", open && "rotate-180")} />
@@ -119,7 +119,7 @@ export function Select({ value, onValueChange, options = [], placeholder, classN
         )}>
           <div className="max-h-60 overflow-auto">
             {options.length === 0 ? (
-              <div className="px-3 py-2 text-sm text-muted-foreground">无可用选项</div>
+              <div className="px-3 py-2 text-sm text-muted-foreground">No options available</div>
             ) : (
               options.map((option) => (
                 <button
@@ -138,16 +138,16 @@ export function Select({ value, onValueChange, options = [], placeholder, classN
                       {(option.isDefault || option.isSmallFast || option.isVisual || option.isCompact) && (
                         <div className="flex gap-1 flex-shrink-0">
                           {option.isDefault && (
-                            <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary">默认</span>
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary">Default</span>
                           )}
                           {option.isSmallFast && (
-                            <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500">快速</span>
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500">Fast</span>
                           )}
                           {option.isVisual && (
-                            <span className="text-xs px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-500">视觉</span>
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-500">Visual</span>
                           )}
                           {option.isCompact && (
-                            <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/10 text-green-500">长上下文</span>
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/10 text-green-500">Long Context</span>
                           )}
                         </div>
                       )}

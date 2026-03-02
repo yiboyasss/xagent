@@ -33,11 +33,11 @@ export function AuthGuard({ children }: AuthGuardProps) {
   }, [isAuthenticated, isLoading, router, mounted, isAuthPage])
 
   useEffect(() => {
-    // 降低检查频率，只在用户活跃时检查
+    // Reduce check frequency, only check when user is active
     let checkTimeout: NodeJS.Timeout
     let retryCount = 0
-    const maxRetries = 2 // 减少重试次数
-    const checkInterval = 15 * 60 * 1000 // 15分钟检查一次，而不是5分钟
+    const maxRetries = 2 // Reduce retry count
+    const checkInterval = 15 * 60 * 1000 // Check every 15 minutes instead of 5 minutes
 
     const scheduleNextCheck = () => {
       checkTimeout = setTimeout(async () => {
@@ -45,7 +45,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
           try {
             const isValid = await checkAuth()
             if (isValid) {
-              retryCount = 0 // 重置重试计数
+              retryCount = 0 // Reset retry count
             } else {
               retryCount++
               if (retryCount >= maxRetries) {
@@ -64,11 +64,11 @@ export function AuthGuard({ children }: AuthGuardProps) {
             }
           }
         }
-        scheduleNextCheck() // 安排下一次检查
+        scheduleNextCheck() // Schedule next check
       }, checkInterval)
     }
 
-    // 只在用户活跃时开始检查
+    // Only start checking when user is active
     if (isAuthenticated && !isAuthPage) {
       scheduleNextCheck()
     }

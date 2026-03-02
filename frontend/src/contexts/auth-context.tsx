@@ -25,16 +25,16 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-// 缓存配置
-const CACHE_DURATION = 120 * 60 * 1000 // 120分钟
+// Cache configuration
+const CACHE_DURATION = 120 * 60 * 1000 // 120 minutes
 
 interface AuthCache {
   user: User | null
   token: string | null
   refreshToken: string | null
   timestamp: number
-  expiresAt?: number  // access token过期时间
-  refreshExpiresAt?: number  // refresh token过期时间
+  expiresAt?: number  // access token expiration time
+  refreshExpiresAt?: number  // refresh token expiration time
 }
 
 function getAuthCache(): AuthCache | null {
@@ -43,7 +43,7 @@ function getAuthCache(): AuthCache | null {
     if (!cached) return null
 
     const cache: AuthCache = JSON.parse(cached)
-    // 检查缓存是否过期
+    // Check if cache is expired
     if (Date.now() - cache.timestamp > CACHE_DURATION) {
       localStorage.removeItem(AUTH_CACHE_KEY)
       return null
@@ -59,8 +59,8 @@ function setAuthCache(
   user: User | null,
   token: string | null,
   refreshToken: string | null = null,
-  expiresIn?: number,  // access token过期时间（秒）
-  refreshExpiresIn?: number  // refresh token过期时间（秒）
+  expiresIn?: number,  // access token expiration time (seconds)
+  refreshExpiresIn?: number  // refresh token expiration time (seconds)
 ) {
   const cache: AuthCache = {
     user,
@@ -84,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const [lastCheckTime, setLastCheckTime] = useState(0)
 
-  // 主动刷新token的定时器
+  // Timer for active token refresh
   useEffect(() => {
     if (!token || !refreshToken) return
 
@@ -95,36 +95,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (cache.expiresAt) {
         const now = Date.now()
         const timeUntilExpiry = cache.expiresAt - now
-        const shouldRefresh = timeUntilExpiry < 5 * 60 * 1000 // 提前5分钟刷新
+        const shouldRefresh = timeUntilExpiry < 5 * 60 * 1000 // Refresh 5 minutes in advance
 
         if (shouldRefresh) {
-          console.log("Token即将过期，主动刷新...")
+          console.log("Token is about to expire, refreshing actively...")
           const success = await refreshAccessToken()
           if (!success) {
-            // 刷新失败，停止定时器（因为会自动跳转登录页）
+            // Refresh failed, stop timer (will automatically redirect to login page)
             clearInterval(refreshInterval)
           }
         }
       } else {
-        // 没有过期时间信息，使用旧的逻辑
+        // No expiration time info, use old logic
         const timeSinceCreation = Date.now() - cache.timestamp
-        const shouldRefresh = timeSinceCreation > (CACHE_DURATION - 5 * 60 * 1000) // 提前5分钟
+        const shouldRefresh = timeSinceCreation > (CACHE_DURATION - 5 * 60 * 1000) // 5 minutes in advance
 
         if (shouldRefresh) {
-          console.log("Token即将过期（基于创建时间），主动刷新...")
+          console.log("Token is about to expire (based on creation time), refreshing actively...")
           const success = await refreshAccessToken()
           if (!success) {
             clearInterval(refreshInterval)
           }
         }
       }
-    }, 60000) // 每分钟检查一次
+    }, 60000) // Check every minute
 
     return () => clearInterval(refreshInterval)
   }, [token, refreshToken, user])
 
+  // Check cache on initialization
   useEffect(() => {
-    // 初始化时检查缓存
     const timer = setTimeout(() => {
       // Try new cache format first
       const cache = getAuthCache()
@@ -159,7 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(timer)
   }, [])
 
-  // 监听 token 更新事件
+  // Listen for token update events
   useEffect(() => {
     const handleTokenUpdate = (event: Event) => {
       const storageEvent = event as StorageEvent
@@ -203,7 +203,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setRefreshToken(data.refresh_token)
         setUser(userData)
 
-        // 更新缓存
+        // Update cache
         setAuthCache(
           userData,
           data.access_token,
@@ -235,14 +235,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkAuth = async (): Promise<boolean> => {
     if (!token || !user) return false
 
-    // 防抖：如果距离上次检查时间太短，直接返回true
+    // Debounce: if interval since last check is too short, return true directly
     const now = Date.now()
-    if (now - lastCheckTime < 15000) { // 15秒内不重复检查，减少服务器压力
+    if (now - lastCheckTime < 15000) { // Do not check repeatedly within 15 seconds to reduce server load
       return true
     }
 
     try {
-      // 使用新的verify endpoint来检查token有效性
+      // Use new verify endpoint to check token validity
       const response = await apiRequest(`${getApiUrl()}/api/auth/verify`, {
         headers: {
           "X-Username": user.username,
@@ -252,19 +252,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLastCheckTime(now)
 
       if (!response.ok) {
-        // apiRequest 已经自动处理了 token 刷新，如果还是失败则说明认证有问题
+        // apiRequest has automatically handled token refresh, if it still fails, it means there is an authentication problem
         if (response.status === 401) {
-          // 检查是否是明确的无效token（而不是过期）
+          // Check if it is explicitly an invalid token (not expired)
           const errorType = response.headers.get("Error-Type")
           const isInvalid = errorType === "InvalidToken"
 
           if (isInvalid) {
-            // 明确的无效token，清除状态
+            // Explicitly invalid token, clear state
             logout()
             return false
           } else {
-            // Token过期但刷新失败，此时 apiRequest 已经处理了重定向
-            // 我们只需要清除本地状态
+            // Token expired but refresh failed, apiRequest has handled redirection
+            // We just need to clear local state
             setUser(null)
             setToken(null)
             setRefreshToken(null)
@@ -272,13 +272,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return false
           }
         }
-        // 网络错误或服务器错误，保持当前状态
-        return false  // 改为false，因为认证检查失败
+        // Network error or server error, keep current state
+        return false  // Changed to false because auth check failed
       }
 
       const data = await response.json()
       if (data.success === true) {
-        // 认证成功，同步更新状态（因为 apiRequest 可能已经更新了缓存）
+        // Auth success, sync update state (because apiRequest may have updated cache)
         const updatedCache = getAuthCache()
         if (updatedCache && updatedCache.token && updatedCache.user) {
           setToken(updatedCache.token)
@@ -291,7 +291,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return false
     } catch (error) {
       console.error("Auth check error:", error)
-      // 网络错误，保持当前状态
+      // Network error, keep current state
       return true
     }
   }

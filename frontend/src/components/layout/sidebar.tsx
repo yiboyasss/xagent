@@ -123,28 +123,28 @@ const navigationGroups: NavigationGroup[] = [
 
 const baseUserMenuItems: NavigationItem[] = [
   {
-    name: "工具管理",
+    name: "Tools",
     nameKey: "nav.tools",
     href: "/tools",
     icon: Wrench,
     color: "text-blue-400"
   },
   {
-    name: "文件管理",
+    name: "Files",
     nameKey: "nav.files",
     href: "/files",
     icon: FileText,
     color: "text-blue-400"
   },
   {
-    name: "监控",
+    name: "Monitoring",
     nameKey: "nav.monitoring",
     href: "/monitoring",
     icon: Activity,
     color: "text-blue-400"
   },
   {
-    name: "系统设置",
+    name: "Settings",
     nameKey: "nav.settings",
     href: "/settings",
     icon: Settings,
@@ -157,7 +157,7 @@ const getUserMenuItemsForUser = (user: any): NavigationItem[] => {
 
   if (user?.is_admin) {
     menuItems.splice(-1, 0, {
-      name: "用户管理",
+      name: "User Management",
       nameKey: "nav.userManagement",
       href: "/users/",
       icon: Users,
@@ -206,7 +206,7 @@ export function Sidebar({ isCollapsible = false, className }: SidebarProps) {
   }
 
   const [isExpanded, setIsExpanded] = useState(false)
-  const [expandedMenus, setExpandedMenus] = useState<string[]>(["/agent"]) // 使用 href 作为稳定键
+  const [expandedMenus, setExpandedMenus] = useState<string[]>(["/agent"]) // Use href as a stable key
   const [showUserMenu, setShowUserMenu] = useState(false)
   const sidebarRef = useRef<HTMLDivElement | null>(null)
   const userMenuRef = useRef<HTMLDivElement | null>(null)
@@ -230,7 +230,7 @@ export function Sidebar({ isCollapsible = false, className }: SidebarProps) {
     }
   }, [showUserMenu])
 
-  // 获取当前选中的task ID (从路径中解析，支持 /task/[id] 格式)
+  // Get currently selected task ID (parsed from path, supports /task/[id] format)
   const getCurrentTaskId = useCallback(() => {
     if (typeof window !== 'undefined') {
       const pathname = window.location.pathname;
@@ -251,7 +251,7 @@ export function Sidebar({ isCollapsible = false, className }: SidebarProps) {
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const navRef = useRef<HTMLElement | null>(null)
 
-  // 加载任务列表
+  // Load task list
   const loadTasks = useCallback(async (pageNum = 1, isAppending = false) => {
     if (isAppending) {
       setIsLoadingMore(true)
@@ -263,7 +263,7 @@ export function Sidebar({ isCollapsible = false, className }: SidebarProps) {
       const response = await apiRequest(`${getApiUrl()}/api/chat/tasks?exclude_agent_type=text2sql&page=${pageNum}&per_page=10`)
       if (response.ok) {
         const data = await response.json()
-        // 处理新的API响应格式 {tasks: [...], pagination: {...}}
+        // Handle new API response format {tasks: [...], pagination: {...}}
         const newTasks = data.tasks || (Array.isArray(data) ? data : [])
 
         if (isAppending) {
@@ -272,7 +272,7 @@ export function Sidebar({ isCollapsible = false, className }: SidebarProps) {
           setTasks(newTasks)
         }
 
-        // 更新分页状态
+        // Update pagination status
         const totalPages = data.pagination?.total_pages || 1
         setHasMore(pageNum < totalPages)
         setPage(pageNum)
@@ -285,14 +285,14 @@ export function Sidebar({ isCollapsible = false, className }: SidebarProps) {
     }
   }, [])
 
-  // 监听任务列表变化，如果内容不足以填满容器且还有更多数据，自动加载下一页
+  // Monitor task list changes, if content is not enough to fill the container and there is more data, automatically load the next page
   useEffect(() => {
     if (!navRef.current) return
 
     const { scrollHeight, clientHeight } = navRef.current
-    // 如果内容高度小于等于容器高度（加上一点缓冲），且还有更多数据，且不在加载中
+    // If content height is less than or equal to container height (plus a buffer), and there is more data, and not loading
     if (scrollHeight <= clientHeight + 20 && hasMore && !isLoadingMore && !isLoadingTasks) {
-       // 使用 setTimeout 避免在一次渲染周期内连续更新状态
+       // Use setTimeout to avoid continuous state updates in one render cycle
        const timer = setTimeout(() => {
          loadTasks(page + 1, true)
        }, 100)
@@ -313,19 +313,19 @@ export function Sidebar({ isCollapsible = false, className }: SidebarProps) {
     }
   }
 
-  // Agent页面默认隐藏侧边栏，但Vibe页面和Build页面保持显示，其他页面显示
-  // 对于agent页面，只有isExpanded为true时才显示侧边栏
-  // build 页面不再自动隐藏
-  // /agent/[id] 页面不自动折叠（用于 agent 聊天）
+  // Sidebar is hidden by default on Agent pages, but kept visible on Vibe and Build pages, and shown on other pages
+  // For agent pages, sidebar is only shown when isExpanded is true
+  // Build page no longer automatically hides
+  // /agent/[id] page does not auto-collapse (for agent chat)
   const isAgentChatPage = pathname.match(/^\/agent\/\d+$/)
   const shouldShowSidebar = !((pathname.startsWith('/agent') && !pathname.startsWith('/agent/vibe') && !isAgentChatPage)) || isExpanded
   const isAgentPage = (pathname.startsWith('/agent') && !pathname.startsWith('/agent/vibe') && !isAgentChatPage)
 
-  // 当处于可收起状态并且已展开时，点击侧边栏以外区域自动收起
+  // When in collapsible state and expanded, click outside sidebar to automatically collapse
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       if (!sidebarRef.current) return
-      // 仅在可折叠页面且当前展开时处理
+      // Only process when in collapsible page and currently expanded
       if (isAgentPage && shouldShowSidebar && isExpanded) {
         if (!sidebarRef.current.contains(event.target as Node)) {
           setIsExpanded(false)

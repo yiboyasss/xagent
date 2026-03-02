@@ -85,8 +85,8 @@ export function ModelInfoDisplay({ currentTask, onConfigChange, className }: Mod
   }
 
   if (!currentTask || (!currentTask.modelName && !currentTask.smallFastModelName && !currentTask.visualModelName)) {
-    // 如果没有任务或没有模型信息，显示配置按钮
-    // 但是如果 onConfigChange 为 undefined，则不显示按钮（由父组件处理）
+    // If no task or no model info, show config button
+    // But if onConfigChange is undefined, don't show button (handled by parent)
     if (!onConfigChange) {
       return null
     }
@@ -113,7 +113,7 @@ export function ModelInfoDisplay({ currentTask, onConfigChange, className }: Mod
 
   return (
     <div className="flex items-center gap-2">
-      {/* 主模型显示 */}
+      {/* Main model display */}
       {mainModelDisplay && (
         <Badge
           variant="secondary"
@@ -125,7 +125,7 @@ export function ModelInfoDisplay({ currentTask, onConfigChange, className }: Mod
         </Badge>
       )}
 
-      {/* 快速模型显示 */}
+      {/* Fast model display */}
       {smallFastModelDisplay && (
         <Badge
           variant="secondary"
@@ -137,7 +137,7 @@ export function ModelInfoDisplay({ currentTask, onConfigChange, className }: Mod
         </Badge>
       )}
 
-      {/* 视觉模型显示 */}
+      {/* Visual model display */}
       {visualModelDisplay && (
         <Badge
           variant="secondary"
@@ -149,7 +149,7 @@ export function ModelInfoDisplay({ currentTask, onConfigChange, className }: Mod
         </Badge>
       )}
 
-      {/* 配置按钮 */}
+      {/* Config button */}
       {onConfigChange && (
         <Button
           variant="ghost"

@@ -201,7 +201,7 @@ export default function AgentChatPage() {
 
   return (
     <div className="h-screen bg-background flex flex-col">
-      {/* 消息滚动区域 */}
+      {/* Message scroll area */}
       <div className="flex-1 overflow-y-auto">
         <main className="container max-w-4xl mx-auto px-4 py-8 relative z-0">
           <div className="space-y-6 pb-4">
@@ -227,7 +227,7 @@ export default function AgentChatPage() {
                 )}
               </>
             ) : (
-              /* 空状态 */
+              /* Empty state */
               <div className="flex flex-col items-center justify-center min-h-[80vh] py-16 text-center">
                 <div className="relative mb-6">
                   <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[hsl(var(--gradient-from))]/20 to-[hsl(var(--gradient-to))]/10 flex items-center justify-center animate-float">
@@ -263,7 +263,7 @@ export default function AgentChatPage() {
                     taskConfig={{ model: agentModelName }}
                   />
 
-                  {/* 建议提示词 */}
+                  {/* Suggested prompts */}
                   {agent.suggested_prompts && agent.suggested_prompts.length > 0 && (
                     <div className="space-y-4">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground/80 px-1">
@@ -291,7 +291,7 @@ export default function AgentChatPage() {
         </main>
       </div>
 
-      {/* 固定在底部的输入框 */}
+      {/* Fixed input box at bottom */}
       {hasMessages && (
         <div className="flex-shrink-0 z-10 glass pb-6">
           <div className="container max-w-4xl mx-auto px-4">

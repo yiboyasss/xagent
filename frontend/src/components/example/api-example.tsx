@@ -14,9 +14,9 @@ export function ApiExample() {
   const [manualResult, setManualResult] = useState<any>(null)
   const [wsStatus, setWsStatus] = useState<string>(t('agent.header.connection.disconnected'))
 
-  // 测试WebSocket连接（使用一个虚拟的task id）
+  // Test WebSocket connection (use a dummy task id)
   const { isConnected: wsConnected, connectionError: wsError } = useWebSocket({
-    taskId: 999, // 虚拟任务ID用于测试
+    taskId: 999, // Dummy task ID for testing
     onConnect: () => setWsStatus(t('agent.header.connection.connected')),
     onDisconnect: () => setWsStatus(t('agent.header.connection.disconnected')),
     onError: (error) => {
@@ -24,7 +24,7 @@ export function ApiExample() {
     },
   })
 
-  // 使用自动token刷新的API调用
+  // Use API call with auto token refresh
   const { data: models, loading, error, refetch } = apiHooks.useGet(
     "/api/models/?category=llm",
     {
@@ -34,7 +34,7 @@ export function ApiExample() {
     }
   )
 
-  // 手动API调用示例
+  // Manual API call example
   const handleManualCall = async () => {
     try {
       const response = await apiRequest(`${getApiUrl()}/api/models/?category=llm`, {

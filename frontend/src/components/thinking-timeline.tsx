@@ -107,7 +107,7 @@ export function ThinkingTimeline({ steps, isComplete, onAutoCollapse }: Thinking
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set())
   const [autoCollapseTimer, setAutoCollapseTimer] = useState<NodeJS.Timeout | null>(null)
 
-  // 自动展开正在运行的步骤
+  // Auto expand running steps
   useEffect(() => {
     const runningSteps = steps.filter(step => step.status === "running")
     if (runningSteps.length > 0) {
@@ -121,10 +121,10 @@ export function ThinkingTimeline({ steps, isComplete, onAutoCollapse }: Thinking
     }
   }, [steps])
 
-  // 完成后自动折叠
+  // Auto collapse after completion
   useEffect(() => {
     if (isComplete && onAutoCollapse) {
-      // 设置3秒后自动折叠
+      // Auto collapse after 3 seconds
       const timer = setTimeout(() => {
         setExpandedSteps(new Set())
         onAutoCollapse()
@@ -166,9 +166,9 @@ export function ThinkingTimeline({ steps, isComplete, onAutoCollapse }: Thinking
   }
 
   const getStepIcon = (step: ThinkingStep) => {
-    console.log('步骤图标调试:', { stepId: step.id, type: step.type, status: step.status })
+    console.log('Step icon debug:', { stepId: step.id, type: step.type, status: step.status })
     const StatusIcon = statusConfig[step.status]?.icon || Clock
-    const stepTypeConfigItem = stepTypeConfig[step.type] || stepTypeConfig.planning // 默认使用planning类型
+    const stepTypeConfigItem = stepTypeConfig[step.type] || stepTypeConfig.planning // Default to planning type
     const TypeIcon = stepTypeConfigItem.icon
 
     return (
@@ -272,18 +272,18 @@ export function ThinkingTimeline({ steps, isComplete, onAutoCollapse }: Thinking
 
               return (
                 <div key={step.id} className="relative">
-                  {/* 连接线 */}
+                  {/* Connection Line */}
                   {index < steps.length - 1 && (
                     <div className="absolute left-4 top-12 w-0.5 h-8 bg-border" />
                   )}
 
                   <div className="flex gap-3">
-                    {/* 步骤图标 */}
+                    {/* Step Icon */}
                     <div className="flex-shrink-0">
                       {getStepIcon(step)}
                     </div>
 
-                    {/* 步骤内容 */}
+                    {/* Step Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 flex-1">
@@ -324,10 +324,10 @@ export function ThinkingTimeline({ steps, isComplete, onAutoCollapse }: Thinking
                         </div>
                       </div>
 
-                      {/* 步骤详情 */}
+                      {/* Step Details */}
                       {renderStepDetails(step)}
 
-                      {/* 依赖关系提示 */}
+                      {/* Dependency Hint */}
                       {hasDependencies && index > 0 && (
                         <div className="mt-2 text-xs text-muted-foreground">
                           <p>{t('agentStore.text2sql.timeline.labels.basedOnSteps', { steps: step.dependencies?.join(", ") ?? "" })}</p>

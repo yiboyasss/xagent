@@ -157,7 +157,7 @@ export function DashboardPage() {
     }
   }
 
-  // 统计数据状态
+  // Statistics data status
   const [dashboardStats, setDashboardStats] = useState({
     totalTasks: 0,
     activeAgents: 0,
@@ -166,7 +166,7 @@ export function DashboardPage() {
   })
   const [isLoadingStats, setIsLoadingStats] = useState(true)
 
-  // 获取首页统计数据
+  // Fetch dashboard statistics
   useEffect(() => {
     const loadDashboardStats = async () => {
       try {
@@ -187,7 +187,7 @@ export function DashboardPage() {
     loadDashboardStats()
   }, [])
 
-  // 统计数据
+  // Statistics data
   const stats = [
     {
       title: t("dashboard.stats.total_tasks"),
@@ -219,7 +219,7 @@ export function DashboardPage() {
     }
   ]
 
-  // 主要功能模块
+  // Main features
   const mainFeatures = [
     {
       title: t("dashboard.features.vibe.title"),
@@ -274,10 +274,10 @@ export function DashboardPage() {
           <p className="text-lg text-[#8B949E]">{process.env.NEXT_PUBLIC_APP_SUBTITLE ? branding.subtitle : t('branding.subtitle')}</p>
         </div>
 
-        {/* 统计卡片 */}
+        {/* Statistics cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {stats.map((stat, index) => {
-            // 为每个统计卡片定义不同的渐变背景
+            // Define different gradient backgrounds for each statistic card
             const getStatGradient = () => {
               if (stat.color.includes("blue")) return "from-blue-500/10 via-blue-600/5 to-transparent";
               if (stat.color.includes("green")) return "from-green-500/10 via-green-600/5 to-transparent";
@@ -288,9 +288,9 @@ export function DashboardPage() {
 
             return (
               <Card key={index} className={`p-6 bg-gradient-to-br ${getStatGradient()} backdrop-blur-sm border-border/30 hover:border-border/80 transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 group relative overflow-hidden`}>
-                {/* 背景装饰 */}
+                {/* Background decoration */}
                 <div className="absolute inset-0 bg-gradient-to-br from-transparent via-primary/3 to-transparent opacity-50"></div>
-                {/* 光效边框 */}
+                {/* Light effect border */}
                 <div className="absolute inset-0 rounded-lg border border-transparent group-hover:border-primary/20 transition-all duration-300"></div>
 
                 <div className="flex items-center justify-between relative z-10">
@@ -307,12 +307,12 @@ export function DashboardPage() {
           })}
         </div>
 
-        {/* 主要功能模块 */}
+        {/* Main features */}
         <div className="mb-8">
           <h2 className="text-2xl font-semibold mb-6 text-foreground">{t('dashboard.features.title')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {mainFeatures.map((feature, index) => {
-              // 根据颜色确定悬停时的文字颜色
+              // Determine hover text color based on color
               const getHoverColor = () => {
                 if (feature.color.includes("purple")) return "group-hover:text-purple-400";
                 if (feature.color.includes("yellow")) return "group-hover:text-yellow-400";
@@ -323,7 +323,7 @@ export function DashboardPage() {
                 return "group-hover:text-blue-400";
               };
 
-              // 为每个功能卡片定义不同的渐变背景
+              // Define different gradient backgrounds for each feature card
               const getFeatureGradient = () => {
                 if (feature.color.includes("purple")) return "from-purple-500/15 via-purple-600/8 to-indigo-500/5";
                 if (feature.color.includes("yellow")) return "from-yellow-500/15 via-amber-600/8 to-orange-500/5";
@@ -336,12 +336,12 @@ export function DashboardPage() {
               return (
                 <Link key={index} href={feature.href}>
                   <Card className={`p-6 hover:shadow-2xl transition-all duration-300 cursor-pointer bg-gradient-to-br ${getFeatureGradient()} backdrop-blur-sm border-border/30 hover:border-primary/30 hover:shadow-primary/10 group relative overflow-hidden`}>
-                    {/* 动态背景装饰 */}
+                    {/* Dynamic background decoration */}
                     <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/2 to-transparent opacity-30"></div>
-                    {/* 几何装饰 */}
+                    {/* Geometric decoration */}
                     <div className="absolute top-2 right-2 w-16 h-16 rounded-full bg-gradient-to-br from-white/5 to-transparent opacity-20 group-hover:opacity-40 transition-opacity duration-500"></div>
                     <div className="absolute bottom-2 left-2 w-12 h-12 rounded-lg bg-gradient-to-tr from-white/3 to-transparent opacity-15 group-hover:opacity-30 transition-opacity duration-500"></div>
-                    {/* 光效边框 */}
+                    {/* Light effect border */}
                     <div className="absolute inset-0 rounded-lg border border-transparent group-hover:border-primary/20 transition-all duration-300"></div>
 
                     <div className="flex items-center justify-between mb-4 relative z-10">

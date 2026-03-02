@@ -169,7 +169,7 @@ export function ConfigDialog({ onConfigChange, currentConfig, trigger }: ConfigD
         </div>
 
         <div className="flex-1 overflow-visible px-6 space-y-6">
-          {/* 模型选择 */}
+          {/* Model Selection */}
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium">{t('agent.configDialog.modelSelect.label')}</label>
@@ -190,7 +190,7 @@ export function ConfigDialog({ onConfigChange, currentConfig, trigger }: ConfigD
               </div>
             ) : (
               <div className="space-y-4">
-                {/* 主要模型选择 */}
+                {/* Main model selection */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">{t('agent.configDialog.modelSelect.main.label')}</label>
                   <Select
@@ -211,7 +211,7 @@ export function ConfigDialog({ onConfigChange, currentConfig, trigger }: ConfigD
                   </p>
                 </div>
 
-                {/* 小型/快速模型选择（可选） */}
+                {/* Small/fast model selection (optional) */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">{t('agent.configDialog.modelSelect.smallFast.label')}</label>
                   <Select
@@ -235,7 +235,7 @@ export function ConfigDialog({ onConfigChange, currentConfig, trigger }: ConfigD
                   </p>
                 </div>
 
-                {/* 视觉模型选择（可选） */}
+                {/* Visual model selection (optional) */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">{t('agent.configDialog.modelSelect.visual.label')}</label>
                   <Select
@@ -259,7 +259,7 @@ export function ConfigDialog({ onConfigChange, currentConfig, trigger }: ConfigD
                   </p>
                 </div>
 
-                {/* 长上下文模型选择（可选） */}
+                {/* Long context model selection (optional) */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">{t('agent.configDialog.modelSelect.compact.label')}</label>
                   <Select
@@ -284,7 +284,7 @@ export function ConfigDialog({ onConfigChange, currentConfig, trigger }: ConfigD
                   </p>
                 </div>
 
-                {/* 记忆相似度阈值配置 */}
+                {/* Memory similarity threshold configuration */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">{t('agent.configDialog.memoryThreshold.label')}</label>
                   <div className="space-y-3">
@@ -314,7 +314,6 @@ export function ConfigDialog({ onConfigChange, currentConfig, trigger }: ConfigD
               </div>
             )}
           </div>
-
           </div>
 
         <div className="p-6 pt-0">

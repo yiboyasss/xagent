@@ -3,7 +3,6 @@
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { format } from "date-fns"
-import { zhCN } from "date-fns/locale"
 
 interface DateTimePickerProps {
   value?: string
@@ -15,14 +14,14 @@ interface DateTimePickerProps {
 export function DateTimePicker({
   value,
   onChange,
-  placeholder = "选择日期和时间",
+  placeholder = "Select date and time",
   label
 }: DateTimePickerProps) {
   const formatDateForDisplay = (dateString: string) => {
     if (!dateString) return ""
     try {
       const date = new Date(dateString)
-      return format(date, "yyyy-MM-dd HH:mm", { locale: zhCN })
+      return format(date, "yyyy-MM-dd HH:mm")
     } catch {
       return dateString
     }
@@ -56,14 +55,14 @@ export function DateTimePicker({
             onClick={handleClear}
             className="px-3 py-2 text-sm text-destructive hover:text-destructive-foreground border border-destructive/20 hover:border-destructive/40 rounded-md transition-colors"
           >
-            清除
+            Clear
           </button>
         )}
       </div>
 
       {value && (
         <div className="mt-1 text-xs text-muted-foreground">
-          选择时间: {formatDateForDisplay(value)}
+          Selected time: {formatDateForDisplay(value)}
         </div>
       )}
     </div>

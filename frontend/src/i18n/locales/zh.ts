@@ -730,6 +730,9 @@ Build when you need.`
     item: {
       keywordPrefix: "关键词",
       tagPrefix: "标签",
+      addedManually: "手动添加",
+      keywordsLabel: "关键词：",
+      tagsLabel: "标签：",
     },
     list: {
       empty: "暂无记忆项",
@@ -1250,7 +1253,8 @@ Build when you need.`
       webIngestFailed: "网站导入失败",
       deleteFailed: "删除知识库失败: {name}",
       deleteFailedGeneric: "删除知识库失败",
-      unsupportedFileType: "不支持的文件类型",
+      unsupportedFileType: "部分文件格式不支持，已跳过",
+      failedAtStep: "失败步骤: {step}",
     },
     actions: {
       deleteConfirm: "确定要删除知识库 {name} 吗？此操作无法撤销。",

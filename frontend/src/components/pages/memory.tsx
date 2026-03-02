@@ -553,7 +553,7 @@ export function MemoryPage() {
                               {memory.category.replace(/_/g, ' ')}
                             </Badge>
                             <span className="text-xs text-muted-foreground">
-                              Added manually • {formatDate(memory.timestamp)}
+                              {t("memory.item.addedManually")} • {formatDate(memory.timestamp)}
                             </span>
                           </div>
 
@@ -563,21 +563,21 @@ export function MemoryPage() {
 
                           {/* Footer / Source */}
                           <div className="pt-1 flex items-center gap-2 flex-wrap">
-                             {/* Keywords */}
-                             {memory.keywords.length > 0 && (
-                               <div className="flex items-center gap-1 ml-2">
-                                 <span className="text-xs text-muted-foreground">关键词:</span>
-                                 {memory.keywords.slice(0, 3).map(keyword => (
-                                   <Badge key={keyword} variant="secondary" className="text-[10px] px-1.5 h-5 font-normal bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 border-0">
-                                     {keyword}
-                                   </Badge>
-                                 ))}
-                               </div>
-                             )}
+                            {/* Keywords */}
+                            {memory.keywords.length > 0 && (
+                              <div className="flex items-center gap-1 ml-2">
+                                <span className="text-xs text-muted-foreground">{t("memory.item.keywordsLabel")}</span>
+                                {memory.keywords.slice(0, 3).map(keyword => (
+                                  <Badge key={keyword} variant="secondary" className="text-[10px] px-1.5 h-5 font-normal bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 border-0">
+                                    {keyword}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
 
                              {memory.tags.length > 0 && (
                                <div className="flex items-center gap-1 ml-2">
-                                 <span className="text-xs text-muted-foreground">标签:</span>
+                                 <span className="text-xs text-muted-foreground">{t("memory.item.tagsLabel")}</span>
                                  {memory.tags.slice(0, 3).map(tag => (
                                    <span key={tag} className="text-xs text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
                                      #{tag}
