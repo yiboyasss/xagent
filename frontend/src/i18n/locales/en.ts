@@ -1762,8 +1762,8 @@ Build when you need.`
           hint: "Primarily used for complex tasks. Defaults to the default model set on the Models page",
         },
         smallFast: {
-          label: "Small/Fast Model (Optional)",
-          placeholder: "Select small/fast model...",
+          label: "Fast Model (Optional)",
+          placeholder: "Select fast model...",
           hint: "Optional configuration for simple tasks to get faster responses",
           options: {
             noneLabel: "Do not use fast model",

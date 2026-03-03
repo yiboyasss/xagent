@@ -1762,7 +1762,7 @@ Build when you need.`
           hint: "主要用于处理复杂任务，默认使用模型管理页面设置的默认模型",
         },
         smallFast: {
-          label: "小型/快速模型（可选）",
+          label: "快速模型（可选）",
           placeholder: "选择快速模型...",
           hint: "可选配置，用于处理简单任务以获得更快的响应速度",
           options: {
