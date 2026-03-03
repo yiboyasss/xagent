@@ -45,6 +45,7 @@ from ..trace import (
     trace_task_end,
     trace_task_start,
     trace_tool_execution_start,
+    trace_user_message,
 )
 from ..utils.compact import CompactConfig, CompactUtils
 from ..utils.llm_utils import clean_messages
@@ -543,6 +544,51 @@ class ReActPattern(AgentPattern):
 
         # Trace task start
         task_id = f"react_{context.task_id if context else uuid4()}"
+
+        # Emit user message trace if this is the main agent
+        if not self.is_sub_agent:
+            # Use original task_id for user message to ensure it matches the task
+            user_msg_task_id = (
+                str(context.task_id)
+                if context and hasattr(context, "task_id") and context.task_id
+                else task_id
+            )
+
+            trace_data = {}
+            if context:
+                context_dict = {}
+                if hasattr(context, "to_dict"):
+                    context_dict = context.to_dict()
+                elif hasattr(context, "dict"):
+                    context_dict = context.dict()
+                elif isinstance(context, dict):
+                    context_dict = context
+
+                # Check for file info in context
+                if "file_info" in context_dict:
+                    trace_data["files"] = context_dict["file_info"]
+                elif (
+                    hasattr(context, "state")
+                    and isinstance(context.state, dict)
+                    and "file_info" in context.state
+                ):
+                    trace_data["files"] = context.state["file_info"]
+
+                if "uploaded_files" in context_dict:
+                    trace_data["uploaded_files"] = context_dict["uploaded_files"]
+                elif (
+                    hasattr(context, "state")
+                    and isinstance(context.state, dict)
+                    and "uploaded_files" in context.state
+                ):
+                    trace_data["uploaded_files"] = context.state["uploaded_files"]
+
+            await trace_user_message(
+                self.tracer,
+                user_msg_task_id,
+                task,
+                trace_data,
+            )
 
         # For standalone React execution, create a virtual step context
         if not hasattr(self, "_current_step_id") or not self._current_step_id:

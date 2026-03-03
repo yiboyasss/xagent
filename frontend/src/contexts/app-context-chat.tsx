@@ -596,6 +596,7 @@ interface AppContextType {
   setReplayPlaying: (isPlaying: boolean) => void
   setReplaySpeed: (speed: number) => void
   setReplayProgress: (progress: number) => void
+  setPendingMessage: React.Dispatch<React.SetStateAction<{ message: string; files?: File[] } | null>>
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined)
@@ -3601,6 +3602,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
         setReplayPlaying,
         setReplaySpeed,
         setReplayProgress,
+        setPendingMessage,
       }}
     >
       {children}

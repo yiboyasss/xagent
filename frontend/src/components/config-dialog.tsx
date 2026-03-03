@@ -168,7 +168,7 @@ export function ConfigDialog({ onConfigChange, currentConfig, trigger }: ConfigD
           </DialogHeader>
         </div>
 
-        <div className="flex-1 overflow-visible px-6 space-y-6">
+        <div className="flex-1 overflow-y-auto px-6 space-y-6">
           {/* Model Selection */}
           <div className="space-y-4">
             <div>

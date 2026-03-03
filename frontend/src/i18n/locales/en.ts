@@ -1537,6 +1537,7 @@ Build when you need.`
         inputPlaceholder: "Type your message...",
         loading: "Loading agent...",
         notFound: "Agent not found",
+        notFoundDescription: "This agent does not exist or may have been deleted. You can create a new one to get started.",
         failed: "Failed to load agent",
         taskCreated: "Task created. Implementing WebSocket connection...",
         error: "Error: {message}",
