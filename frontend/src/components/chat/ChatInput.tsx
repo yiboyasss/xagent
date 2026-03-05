@@ -83,13 +83,28 @@ export function ChatInput({
     compactModel?: string;
     memorySimilarityThreshold?: number;
   }>({ model: "", memorySimilarityThreshold: 1.5 });
+  const [models, setModels] = useState<any[]>([]);
 
   // Fetch default models on mount
   useEffect(() => {
     const fetchDefaultModels = async () => {
       try {
         const apiUrl = getApiUrl();
-        // Fetch user default models first
+
+        // Fetch all models first to have the list for display names
+        const modelsResponse = await apiRequest(`${apiUrl}/api/models/?category=llm`, {
+            headers: {}
+        });
+
+        let allModels: any[] = [];
+        if (modelsResponse.ok) {
+            allModels = await modelsResponse.json();
+            if (Array.isArray(allModels)) {
+                setModels(allModels);
+            }
+        }
+
+        // Fetch user default models
         const defaultResponse = await apiRequest(`${apiUrl}/api/models/user-default`, {
           headers: {}
         });
@@ -106,20 +121,12 @@ export function ChatInput({
           }
         }
 
-        // Fetch all models to find default if no user preference
-        if (!defaultModels.general) {
-          const modelsResponse = await apiRequest(`${apiUrl}/api/models/?category=llm`, {
-            headers: {}
-          });
-          if (modelsResponse.ok) {
-            const data = await modelsResponse.json();
-            if (Array.isArray(data) && data.length > 0) {
-              const defaultModel = data.find((m: any) => m.is_default) || data[0];
-              if (defaultModel) {
-                defaultModels.general = { model_id: defaultModel.model_id };
-              }
+        // Find default if no user preference
+        if (!defaultModels.general && allModels.length > 0) {
+            const defaultModel = allModels.find((m: any) => m.is_default) || allModels[0];
+            if (defaultModel) {
+            defaultModels.general = { model_id: defaultModel.model_id };
             }
-          }
         }
 
         setAgentConfig(prev => ({
@@ -336,10 +343,10 @@ export function ChatInput({
                     size="sm"
                     className="h-9 px-3 text-muted-foreground rounded-xl gap-2 cursor-default"
                     disabled={true}
-                    title={agentConfig.model || t("chatPage.input.noModel")}
+                    title={models.find(m => m.model_id === agentConfig.model)?.model_name || agentConfig.model || t("chatPage.input.noModel")}
                   >
                     <span className="text-xs font-normal max-w-[150px] truncate hidden sm:inline-block">
-                      {agentConfig.model || t("chatPage.input.noModel")}
+                      {models.find(m => m.model_id === agentConfig.model)?.model_name || agentConfig.model || t("chatPage.input.noModel")}
                     </span>
                   </Button>
                 ) : (
@@ -356,7 +363,7 @@ export function ChatInput({
                         title={t('agent.input.actions.config')}
                       >
                         <span className="text-xs font-normal max-w-[150px] truncate hidden sm:inline-block">
-                          {agentConfig.model || t("chatPage.input.noModel")}
+                          {models.find(m => m.model_id === agentConfig.model)?.model_name || agentConfig.model || t("chatPage.input.noModel")}
                         </span>
                       </Button>
                     }

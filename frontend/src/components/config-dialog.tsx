@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Settings, X, Loader2, Info } from "lucide-react"
+import { Settings, X, Loader2, Info, ArrowRight } from "lucide-react"
 import { cn, getApiUrl, getAuthHeaders } from "@/lib/utils"
 import { apiRequest } from "@/lib/api-wrapper"
 import { useAuth } from "@/contexts/auth-context"
@@ -53,6 +54,7 @@ interface ConfigDialogProps {
 
 export function ConfigDialog({ onConfigChange, currentConfig, trigger }: ConfigDialogProps) {
   const { token } = useAuth()
+  const router = useRouter();
   const [open, setOpen] = useState(false)
   const [models, setModels] = useState<Model[]>([])
   const [loading, setLoading] = useState(false)
@@ -193,6 +195,15 @@ export function ConfigDialog({ onConfigChange, currentConfig, trigger }: ConfigD
               <div className="text-center py-4">
                 <p className="text-sm text-muted-foreground">{t('agent.configDialog.modelSelect.empty.title')}</p>
                 <p className="text-xs text-muted-foreground mt-1">{t('agent.configDialog.modelSelect.empty.hint')}</p>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="mt-4"
+                  onClick={() => router.push("/models")}
+                  title={t('agent.configDialog.modelSelect.empty.button')}
+                >
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
               </div>
             ) : (
               <div className="space-y-4">
@@ -222,7 +233,7 @@ export function ConfigDialog({ onConfigChange, currentConfig, trigger }: ConfigD
                     onValueChange={handleModelSelect}
                     options={models.map(m => ({
                       value: m.model_id,
-                      label: m.model_id,
+                      label: m.model_name,
                       description: `${m.model_name}${m.description ? ' - ' + m.description : ''} (${m.model_provider})`,
                       isDefault: m.is_default,
                       isSmallFast: m.is_small_fast,
@@ -260,7 +271,7 @@ export function ConfigDialog({ onConfigChange, currentConfig, trigger }: ConfigD
                       { value: "", label: t('agent.configDialog.modelSelect.smallFast.options.noneLabel'), description: t('agent.configDialog.modelSelect.smallFast.options.noneDescription') },
                       ...models.map(m => ({
                         value: m.model_id,
-                        label: m.model_id,
+                        label: m.model_name,
                         description: `${m.model_name}${m.description ? ' - ' + m.description : ''} (${m.model_provider})${m.is_small_fast ? t('agent.configDialog.modelSelect.smallFast.options.tagFast') : ''}`,
                         isDefault: m.is_default,
                         isSmallFast: m.is_small_fast,
@@ -299,7 +310,7 @@ export function ConfigDialog({ onConfigChange, currentConfig, trigger }: ConfigD
                       { value: "", label: t('agent.configDialog.modelSelect.visual.options.noneLabel'), description: t('agent.configDialog.modelSelect.visual.options.noneDescription') },
                       ...models.map(m => ({
                         value: m.model_id,
-                        label: m.model_id,
+                        label: m.model_name,
                         description: `${m.model_name}${m.description ? ' - ' + m.description : ''} (${m.model_provider})${m.is_visual ? t('agent.configDialog.modelSelect.visual.options.tagVisual') : ''}`,
                         isDefault: m.is_default,
                         isSmallFast: m.is_small_fast,
@@ -338,7 +349,7 @@ export function ConfigDialog({ onConfigChange, currentConfig, trigger }: ConfigD
                       { value: "", label: t('agent.configDialog.modelSelect.compact.options.noneLabel'), description: t('agent.configDialog.modelSelect.compact.options.noneDescription') },
                       ...models.map(m => ({
                         value: m.model_id,
-                        label: m.model_id,
+                        label: m.model_name,
                         description: `${m.model_name}${m.description ? ' - ' + m.description : ''} (${m.model_provider})${m.is_compact ? t('agent.configDialog.modelSelect.compact.options.tagCompact') : ''}`,
                         isDefault: m.is_default,
                         isSmallFast: m.is_small_fast,
