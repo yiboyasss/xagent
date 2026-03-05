@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Send, Paperclip, X, File as FileIcon, Sparkles, Pause, Play } from "lucide-react";
+import { Send, Paperclip, X, File as FileIcon, Sparkles, Pause, Play, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn, getApiUrl } from "@/lib/utils";
 import { useI18n } from "@/contexts/i18n-context";
 import { ConfigDialog } from "@/components/config-dialog";
 import { apiRequest } from "@/lib/api-wrapper";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +18,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
+interface FileItem {
+  filename: string;
+  file_size: number;
+  modified_time: number;
+  file_type?: string;
+  workspace_id?: string;
+  relative_path?: string;
+}
 
 interface ChatInputProps {
   onSend: (message: string, config?: any) => void | Promise<void>;
@@ -60,20 +70,163 @@ export function ChatInput({
   const [isFocused, setIsFocused] = useState(false);
   const [showNoModelAlert, setShowNoModelAlert] = useState(false);
 
+  // File picker state
+  const [showFilePicker, setShowFilePicker] = useState(false);
+  const [fileList, setFileList] = useState<FileItem[]>([]);
+  const [filteredFiles, setFilteredFiles] = useState<FileItem[]>([]);
+  const [selectedFileIndex, setSelectedFileIndex] = useState(0);
+  const [triggerIndex, setTriggerIndex] = useState<number>(-1);
+  const [isLoadingFiles, setIsLoadingFiles] = useState(false);
+
+  // Track files for async operations
+  const filesRef = useRef(files);
+  useEffect(() => {
+    filesRef.current = files;
+  }, [files]);
+
   // Determine if controlled or uncontrolled
   const isControlled = inputValue !== undefined;
   const message = isControlled ? inputValue : internalMessage;
 
   const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
+    const cursor = e.target.selectionStart;
+
     if (isControlled) {
       onInputChange?.(newValue);
     } else {
       setInternalMessage(newValue);
     }
+
+    checkTrigger(newValue, cursor);
   };
 
+  const fetchFiles = async () => {
+    if (fileList.length > 0) return;
+    setIsLoadingFiles(true);
+    try {
+      const response = await apiRequest(`${getApiUrl()}/api/files/list`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.files) {
+          setFileList(data.files);
+        }
+      }
+    } catch (error) {
+      console.error(t("files.previewDialog.errors.loadFailed"), error);
+      toast.error(t("files.previewDialog.errors.loadFailed"));
+    } finally {
+      setIsLoadingFiles(false);
+    }
+  };
+
+  const checkTrigger = (text: string, cursor: number) => {
+    const textBeforeCursor = text.slice(0, cursor);
+    const lastHashIndex = textBeforeCursor.lastIndexOf("#");
+
+    if (lastHashIndex !== -1) {
+      // Allow trigger anywhere
+      const query = textBeforeCursor.slice(lastHashIndex + 1);
+      if (!query.includes(" ") && !query.includes("\n")) {
+        setTriggerIndex(lastHashIndex);
+        setShowFilePicker(true);
+        fetchFiles();
+
+        // Filter files
+        const lowerQuery = query.toLowerCase();
+        const filtered = fileList.filter(f =>
+          (f.filename.toLowerCase().includes(lowerQuery) ||
+           (f.relative_path && f.relative_path.toLowerCase().includes(lowerQuery)))
+        );
+        setFilteredFiles(filtered);
+        setSelectedFileIndex(0);
+        return;
+      }
+    }
+    setShowFilePicker(false);
+    setTriggerIndex(-1);
+  };
+
+  // Update filtered files when fileList changes (e.g. after fetch)
+  useEffect(() => {
+    if (showFilePicker && fileList.length > 0 && triggerIndex !== -1) {
+       const text = isControlled ? inputValue || "" : internalMessage;
+       // We assume cursor is at the end of what we typed, but better to re-evaluate based on triggerIndex
+       // Actually checkTrigger logic handles the filtering on typing.
+       // But if files arrive AFTER typing #, we need to filter them.
+       // Let's just use the current text if possible, but we don't have cursor here easily.
+       // Simple fallback: show all files if query is empty or just update when user types next char.
+       // Or better: re-run filter logic if fileList changes.
+       // We can extract the query from current message and triggerIndex.
+       if (message.length > triggerIndex) {
+         const query = message.slice(triggerIndex + 1).split(/[\s\n]/)[0];
+         const lowerQuery = query.toLowerCase();
+         const filtered = fileList.filter(f =>
+            (f.filename.toLowerCase().includes(lowerQuery) ||
+             (f.relative_path && f.relative_path.toLowerCase().includes(lowerQuery)))
+          );
+          setFilteredFiles(filtered);
+       }
+    }
+  }, [fileList, showFilePicker, triggerIndex, message, isControlled, inputValue, internalMessage]);
+
+  const insertFile = async (file: FileItem) => {
+    const text = isControlled ? inputValue || "" : internalMessage;
+    if (triggerIndex === -1) return;
+
+    // Find end of the query word
+    let endIndex = text.indexOf(" ", triggerIndex);
+    if (endIndex === -1) endIndex = text.indexOf("\n", triggerIndex);
+    if (endIndex === -1) endIndex = text.length;
+
+    const prefix = text.slice(0, triggerIndex);
+    const suffix = text.slice(endIndex);
+
+    // Remove the #query part entirely since we're attaching the file
+    const newText = prefix + suffix;
+
+    if (isControlled) {
+      onInputChange?.(newText);
+    } else {
+      setInternalMessage(newText);
+    }
+
+    setShowFilePicker(false);
+    setTriggerIndex(-1);
+
+    // Fetch and attach file
+    try {
+      const filePath = file.relative_path || file.filename;
+
+      const response = await apiRequest(`${getApiUrl()}/api/files/download/${encodeURIComponent(filePath)}`);
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const newFile = new File([blob], file.filename, {
+          type: file.file_type || blob.type || 'application/octet-stream',
+          lastModified: file.modified_time * 1000
+        });
+
+        if (onFilesChange) {
+          // Use ref to get latest files to avoid stale closure
+          onFilesChange([...filesRef.current, newFile]);
+        }
+      } else {
+        console.error("Failed to download file:", response.statusText);
+        toast.error(t("files.downloadFailed") || "Failed to download file");
+      }
+    } catch (error) {
+      console.error("Error fetching file:", error);
+      toast.error(t("files.downloadFailed") || "Failed to download file");
+    }
+
+    // Restore focus
+    setTimeout(() => textareaRef.current?.focus(), 0);
+  };
+
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isSubmittingRef = useRef(false);
   const { t } = useI18n();
   const [agentConfig, setAgentConfig] = useState<{
@@ -207,6 +360,31 @@ export function ChatInput({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (showFilePicker) {
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSelectedFileIndex(prev => Math.max(0, prev - 1));
+        return;
+      }
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSelectedFileIndex(prev => Math.min(filteredFiles.length - 1, prev + 1));
+        return;
+      }
+      if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        if (filteredFiles.length > 0) {
+          insertFile(filteredFiles[selectedFileIndex]);
+        }
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setShowFilePicker(false);
+        return;
+      }
+    }
+
     if (e.key === "Enter" && !e.shiftKey) {
       // Prevent triggering submit when using IME (e.g., Chinese input method)
       if (e.nativeEvent.isComposing) {
@@ -304,8 +482,44 @@ export function ChatInput({
       )}
 
       {/* Input area */}
-      <form
-        onSubmit={handleSubmit}
+      <div className="relative">
+        {showFilePicker && (
+          <div className="absolute bottom-full left-0 mb-2 w-full max-w-sm rounded-lg border bg-popover shadow-md z-50 overflow-hidden">
+            {isLoadingFiles ? (
+              <div className="p-4 flex items-center justify-center text-sm text-muted-foreground">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {t("common.loading")}
+              </div>
+            ) : filteredFiles.length === 0 ? (
+              <div className="p-4 text-sm text-muted-foreground text-center">
+                {t("files.table.empty.noMatch")}
+              </div>
+            ) : (
+              <div className="max-h-[200px] overflow-y-auto p-1">
+                {filteredFiles.map((file, index) => (
+                  <div
+                    key={index}
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-2 text-sm rounded-md cursor-pointer transition-colors overflow-scroll",
+                      index === selectedFileIndex ? "bg-accent text-accent-foreground" : "hover:bg-muted"
+                    )}
+                    onClick={() => insertFile(file)}
+                  >
+                    <FileIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <div className="flex flex-col items-start">
+                      <span className="truncate font-medium">{file.filename}</span>
+                      {file.relative_path && file.relative_path !== file.filename && (
+                        <span className="truncate text-xs text-muted-foreground">{file.relative_path}</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        <form
+          onSubmit={handleSubmit}
         className={cn(
           "relative rounded-2xl bg-card overflow-hidden transition-all duration-300 border-2 shadow-lg",
           isFocused
@@ -319,7 +533,14 @@ export function ChatInput({
         />
 
         <Textarea
+          ref={textareaRef}
           value={message}
+          onClick={() => {
+            if (showFilePicker) {
+              setShowFilePicker(false);
+              setTriggerIndex(-1);
+            }
+          }}
           onChange={handleMessageChange}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
@@ -443,6 +664,7 @@ export function ChatInput({
           </div>
         </div>
       </form>
+      </div>
 
       <AlertDialog open={showNoModelAlert} onOpenChange={setShowNoModelAlert}>
         <AlertDialogContent>
