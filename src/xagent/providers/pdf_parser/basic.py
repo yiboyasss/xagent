@@ -13,12 +13,18 @@ from ..pdf_parser.base import (
 class PyPdfParser(DocumentParser, TextParsing, SegmentedTextResult, LocalParsing):
     """Use PyPDFLoader to extract text from PDF (text only)."""
 
+    # Basic PDF-only support
+    supported_extensions = [".pdf"]
+
     async def _parse_impl(self, file_path: str, **kwargs: Any) -> ParseResult:
         return await extract_text_with_pypdf(file_path, **kwargs)
 
 
 class PdfPlumberParser(DocumentParser, TextParsing, SegmentedTextResult, LocalParsing):
     """Use pdfplumber to extract text from PDF (text only)."""
+
+    # Basic PDF-only support
+    supported_extensions = [".pdf"]
 
     async def _parse_impl(self, file_path: str, **kwargs: Any) -> ParseResult:
         return await extract_text_with_pdfplumber(file_path, **kwargs)
@@ -27,7 +33,26 @@ class PdfPlumberParser(DocumentParser, TextParsing, SegmentedTextResult, LocalPa
 class UnstructuredParser(
     DocumentParser, TextParsing, SegmentedTextResult, LocalParsing
 ):
-    """Use UnstructuredPDFLoader to extract text from PDF with AI-powered element detection."""
+    """Use Unstructured to extract text from modern Office/text formats.
+
+    Note:
+        - Modern Open XML formats such as .docx, .pptx, .xlsx are supported directly.
+        - Legacy formats .doc and .ppt are only supported when LibreOffice is installed.
+    """
+
+    # Unstructured supports multiple modern office/text formats; .doc/.ppt support is conditional on LibreOffice.
+    supported_extensions = [
+        ".pdf",
+        ".docx",
+        ".doc",
+        ".pptx",
+        ".ppt",
+        ".xlsx",
+        ".xls",
+        ".txt",
+        ".md",
+        ".json",
+    ]
 
     async def _parse_impl(self, file_path: str, **kwargs: Any) -> ParseResult:
         return await extract_text_with_unstructured(file_path, **kwargs)
@@ -35,6 +60,9 @@ class UnstructuredParser(
 
 class PyMuPdfParser(DocumentParser, TextParsing, SegmentedTextResult, LocalParsing):
     """Use PyMuPDF (fitz) to extract text from PDF (text only)."""
+
+    # Basic PDF-only support
+    supported_extensions = [".pdf"]
 
     async def _parse_impl(self, file_path: str, **kwargs: Any) -> ParseResult:
         return await extract_text_with_pymupdf(file_path, **kwargs)
@@ -89,7 +117,9 @@ async def extract_text_with_pdfplumber(file_path: str, **kwargs: Any) -> ParseRe
 async def extract_text_with_unstructured(file_path: str, **kwargs: Any) -> ParseResult:
     """Extract text using Unstructured (supports PDF, DOCX, PPTX, XLSX, etc.).
 
-    Note: .doc (legacy Word format) requires LibreOffice to be installed.
+    Note:
+        - Legacy .doc and .ppt formats require LibreOffice to be installed.
+        - For best compatibility, prefer converting legacy Office files to Open XML (.docx/.pptx/.xlsx).
     """
 
     try:

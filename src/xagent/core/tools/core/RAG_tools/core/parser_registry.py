@@ -2,51 +2,81 @@
 
 from typing import Dict, List, Set
 
-# File extension to supported parser methods mapping
-# This ensures type-based parse method consistency when allow_mixed_parse_methods=False
+from ....core.document_parser import document_parser_registry
+
+# File extension to supported parser methods mapping.
+# Only parsers actually registered in document_parser_registry are listed.
+# This ensures type-based parse method consistency when allow_mixed_parse_methods=False.
+# Registered parsers: pypdf, pdfplumber, unstructured, pymupdf, deepdoc.
 PARSER_COMPATIBILITY: Dict[str, List[str]] = {
-    # Documents
-    ".pdf": ["deepdoc", "pymupdf", "pdfplumber", "unstructured"],
-    ".docx": ["docx", "unstructured"],
-    ".doc": ["docx", "unstructured"],
+    # Documents (only registered parsers)
+    ".pdf": ["deepdoc", "pymupdf", "pdfplumber", "unstructured", "pypdf"],
+    ".docx": ["deepdoc", "unstructured"],
+    ".doc": ["unstructured"],
     ".pptx": ["unstructured"],
     ".ppt": ["unstructured"],
-    # Text/Markdown
-    ".txt": ["text"],
-    ".md": ["markdown", "commonmark"],
-    ".rst": ["rst"],
-    # Code files
-    ".py": ["code", "python_ast"],
-    ".js": ["code", "javascript"],
-    ".ts": ["code", "typescript"],
-    ".java": ["code", "java"],
-    ".cpp": ["code", "cpp"],
-    ".c": ["code", "c"],
-    ".go": ["code", "go"],
-    ".rs": ["code", "rust"],
-    ".php": ["code", "php"],
-    ".rb": ["code", "ruby"],
-    ".sh": ["code", "bash"],
-    ".sql": ["code", "sql"],
-    # Web formats
-    ".html": ["html", "beautifulsoup"],
-    ".xml": ["xml"],
-    ".json": ["json"],
-    ".yaml": ["yaml"],
-    ".yml": ["yaml"],
-    # Data formats
-    ".csv": ["csv"],
-    ".xlsx": ["excel", "openpyxl"],
-    ".xls": ["excel", "openpyxl"],
-    # Images (for OCR or captioning)
-    ".jpg": ["image", "image_caption"],
-    ".jpeg": ["image", "image_caption"],
-    ".png": ["image", "image_caption"],
-    ".gif": ["image", "image_caption"],
-    ".bmp": ["image", "image_caption"],
-    ".tiff": ["image", "image_caption"],
-    ".webp": ["image", "image_caption"],
+    # Text/Markdown (unstructured supports .txt, .md, .json via basic.py)
+    ".txt": ["unstructured"],
+    ".md": ["unstructured"],
+    ".json": ["unstructured"],
+    # Unstructured can handle other types via partition auto; list only where explicitly used
+    ".xlsx": ["unstructured"],
+    ".xls": ["unstructured"],
+    ".rst": [],
+    ".py": [],
+    ".js": [],
+    ".ts": [],
+    ".java": [],
+    ".cpp": [],
+    ".c": [],
+    ".go": [],
+    ".rs": [],
+    ".php": [],
+    ".rb": [],
+    ".sh": [],
+    ".sql": [],
+    ".html": [],
+    ".xml": [],
+    ".yaml": [],
+    ".yml": [],
+    ".csv": [],
+    ".jpg": [],
+    ".jpeg": [],
+    ".png": [],
+    ".gif": [],
+    ".bmp": [],
+    ".tiff": [],
+    ".webp": [],
 }
+
+
+def _normalize_extension(file_extension: str) -> str:
+    """Normalize file extension to canonical form with leading dot and lowercase."""
+    if not file_extension.startswith("."):
+        file_extension = "." + file_extension
+    return file_extension.lower()
+
+
+def _build_dynamic_compatibility() -> Dict[str, List[str]]:
+    """Build dynamic extension → parser mapping from registered parsers."""
+    mapping: Dict[str, List[str]] = {}
+
+    for parser_name, parser_class in document_parser_registry.parsers().items():
+        supported = getattr(parser_class, "supported_extensions", None)
+        if not supported:
+            continue
+        for ext in supported:
+            norm_ext = _normalize_extension(ext)
+            if norm_ext not in mapping:
+                mapping[norm_ext] = []
+            if parser_name not in mapping[norm_ext]:
+                mapping[norm_ext].append(parser_name)
+
+    return mapping
+
+
+# Built at import time so no lock is needed; parser registry is populated at import.
+_DYNAMIC_COMPATIBILITY: Dict[str, List[str]] = _build_dynamic_compatibility()
 
 
 def get_supported_parsers(file_extension: str) -> List[str]:
@@ -58,12 +88,14 @@ def get_supported_parsers(file_extension: str) -> List[str]:
     Returns:
         List of supported parser method names
     """
-    # Normalize extension
-    if not file_extension.startswith("."):
-        file_extension = "." + file_extension
+    norm_ext = _normalize_extension(file_extension)
 
-    file_extension = file_extension.lower()
-    return PARSER_COMPATIBILITY.get(file_extension, [])
+    # Merge dynamic (from registry supported_extensions) and static mapping so that
+    # register_parser_support() remains effective for all extensions.
+    dynamic_parsers = _DYNAMIC_COMPATIBILITY.get(norm_ext, [])
+    static_parsers = PARSER_COMPATIBILITY.get(norm_ext, [])
+    merged = list(dict.fromkeys(dynamic_parsers + static_parsers))
+    return merged if merged else []
 
 
 def validate_parser_compatibility(
@@ -82,13 +114,20 @@ def validate_parser_compatibility(
     if allow_mixed:
         return True
 
+    # Only "default" is allowed without being in the registry; others must exist
+    if (
+        parser_method != "default"
+        and parser_method not in document_parser_registry.parsers()
+    ):
+        return False
+
     supported_parsers = get_supported_parsers(file_extension)
     return parser_method in supported_parsers
 
 
 def get_all_supported_extensions() -> Set[str]:
-    """Get all supported file extensions."""
-    return set(PARSER_COMPATIBILITY.keys())
+    """Get all supported file extensions (static and dynamic)."""
+    return set(PARSER_COMPATIBILITY.keys()) | set(_DYNAMIC_COMPATIBILITY.keys())
 
 
 def register_parser_support(file_extension: str, parser_method: str) -> None:

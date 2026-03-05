@@ -416,6 +416,19 @@ class DeepDocParser(
     for advanced visualization features.
     """
 
+    # DeepDoc supports multiple structured document formats
+    supported_extensions = [
+        ".pdf",
+        ".docx",
+        ".xlsx",
+        ".xls",
+        ".csv",
+        ".md",
+        ".txt",
+        ".json",
+        ".html",
+    ]
+
     def __init__(self, enable_raw_output: bool = False) -> None:
         """
         Initialize the DeepDoc parser.
@@ -523,7 +536,7 @@ class DeepDocParser(
                         text_content = f.read()
                 return _translate_text_output(text_content, **metadata)
 
-            # 统一验证 Office 文档格式（.docx, .xlsx, .pptx）
+            # Validate Office document format (.docx, .xlsx, .pptx)
             # Skip validation for BytesIO objects as they're already validated during conversion
             if ext in [".docx", ".xlsx", ".pptx"] and not isinstance(
                 file_path, BytesIO
@@ -590,12 +603,12 @@ class DeepDocParser(
                         raw_output = parser(input_arg, **parser_call_kwargs)
 
             except KeyError as e:
-                # 捕获 python-docx 库的 KeyError，通常是格式不匹配导致的
+                # Catch KeyError from python-docx, usually due to format mismatch
                 if ext == ".docx" and "relationship" in str(e).lower():
                     raise ValueError(
-                        f"文件 '{file_path}' 的扩展名是 .docx，但文件格式可能不兼容。\n"
-                        f"deepdoc 的 DocxParser 只支持 Open XML 格式的 .docx 文件（Office 2007+）。\n"
-                        f"请确保文件是正确的 .docx 格式，或使用其他解析器。"
+                        f"File '{file_path}' has extension .docx but the format may be incompatible.\n"
+                        f"DeepDoc DocxParser only supports Open XML .docx (Office 2007+).\n"
+                        f"Ensure the file is valid .docx or use another parser."
                     ) from e
                 raise
 
