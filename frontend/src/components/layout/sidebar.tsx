@@ -534,7 +534,7 @@ export function Sidebar({ isCollapsible = false, className }: SidebarProps) {
                           ) : (
                             <MessageSquare className={cn(
                               "h-4 w-4 absolute inset-0 transition-opacity duration-200 group-hover:opacity-0",
-                              currentTaskId == task.task_id ? "text-accent-foreground" : "text-gray-500"
+                              String(currentTaskId) === String(task.task_id) ? "text-accent-foreground" : "text-gray-500"
                             )} />
                           )}
                           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
