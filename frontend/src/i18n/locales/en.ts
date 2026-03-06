@@ -17,6 +17,7 @@ const en = {
     planning: "Formulating Plan",
     taskPaused: "Task Paused",
     noData: "No Data",
+    refresh: "Refresh",
     errors: {
       unknown: "Unknown error",
     },
@@ -612,6 +613,10 @@ Build when you need.`
     header: {
       title: "File Management",
       description: "Manage project files: upload, preview, download, and delete.",
+    },
+    tabs: {
+      input: "Input",
+      output: "Output",
     },
     search: {
       placeholder: "Search files...",

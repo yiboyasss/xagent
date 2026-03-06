@@ -17,6 +17,7 @@ const zh = {
     planning: "正在制定计划",
     taskPaused: "任务已暂停",
     noData: "暂无数据",
+    refresh: "刷新",
     errors: {
       unknown: "未知错误",
     },
@@ -612,6 +613,10 @@ Build when you need.`
     header: {
       title: "文件管理",
       description: "管理项目文件：上传、预览、下载与删除",
+    },
+    tabs: {
+      input: "输入",
+      output: "输出",
     },
     search: {
       placeholder: "搜索文件...",
