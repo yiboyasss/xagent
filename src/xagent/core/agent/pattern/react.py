@@ -54,6 +54,9 @@ from .memory_utils import enhance_goal_with_memory, store_react_task_memory
 
 logger = logging.getLogger(__name__)
 
+CONTEXT_KEY_FILE_INFO = "file_info"
+CONTEXT_KEY_UPLOADED_FILES = "uploaded_files"
+
 
 class ReActStepType(Enum):
     """Types of steps in ReAct execution"""
@@ -513,6 +516,33 @@ class ReActPattern(AgentPattern):
         self._interrupt_event.set()
         logger.info("ReAct execution interrupted")
 
+    def _populate_trace_data(
+        self,
+        trace_data: Dict[str, Any],
+        target_key: str,
+        context: Any,
+        context_dict: Dict[str, Any],
+        source_key: str,
+    ) -> None:
+        """
+        Helper to populate trace data from context or context state.
+
+        Args:
+            trace_data: The trace data dictionary to populate
+            target_key: The key to set in trace_data
+            context: The context object
+            context_dict: Dictionary representation of context
+            source_key: The key to look for in context
+        """
+        if source_key in context_dict:
+            trace_data[target_key] = context_dict[source_key]
+        elif (
+            hasattr(context, "state")
+            and isinstance(context.state, dict)
+            and source_key in context.state
+        ):
+            trace_data[target_key] = context.state[source_key]
+
     async def run(
         self,
         task: str,
@@ -554,7 +584,7 @@ class ReActPattern(AgentPattern):
                 else task_id
             )
 
-            trace_data = {}
+            trace_data: Dict[str, Any] = {}
             if context:
                 context_dict = {}
                 if hasattr(context, "to_dict"):
@@ -565,23 +595,20 @@ class ReActPattern(AgentPattern):
                     context_dict = context
 
                 # Check for file info in context
-                if "file_info" in context_dict:
-                    trace_data["files"] = context_dict["file_info"]
-                elif (
-                    hasattr(context, "state")
-                    and isinstance(context.state, dict)
-                    and "file_info" in context.state
-                ):
-                    trace_data["files"] = context.state["file_info"]
-
-                if "uploaded_files" in context_dict:
-                    trace_data["uploaded_files"] = context_dict["uploaded_files"]
-                elif (
-                    hasattr(context, "state")
-                    and isinstance(context.state, dict)
-                    and "uploaded_files" in context.state
-                ):
-                    trace_data["uploaded_files"] = context.state["uploaded_files"]
+                self._populate_trace_data(
+                    trace_data,
+                    "files",
+                    context,
+                    context_dict,
+                    CONTEXT_KEY_FILE_INFO,
+                )
+                self._populate_trace_data(
+                    trace_data,
+                    CONTEXT_KEY_UPLOADED_FILES,
+                    context,
+                    context_dict,
+                    CONTEXT_KEY_UPLOADED_FILES,
+                )
 
             await trace_user_message(
                 self.tracer,
