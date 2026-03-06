@@ -610,6 +610,7 @@ Build when you need.`
     },
   },
   files: {
+    fileTooLarge: "文件过大（最大 100MB）",
     header: {
       title: "文件管理",
       description: "管理项目文件：上传、预览、下载与删除",

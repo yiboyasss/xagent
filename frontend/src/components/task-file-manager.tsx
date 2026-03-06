@@ -32,7 +32,8 @@ export function TaskFileManager({ taskId, children, onPreview }: TaskFileManager
   const [isOpen, setIsOpen] = useState(false)
 
   const loadFiles = async () => {
-    if (!taskId && !isOpen) return
+    if (!isOpen) return;  // Don't load if popover isn't open
+    if (!taskId) return;  // Don't load if no task selected
     setIsLoading(true)
     try {
       const response = await apiRequest(`${getApiUrl()}/api/files/list`)

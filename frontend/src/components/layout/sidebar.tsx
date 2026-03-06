@@ -519,7 +519,7 @@ export function Sidebar({ isCollapsible = false, className }: SidebarProps) {
                         title={task.title}
                         className={cn(
                           "group flex items-center px-4 py-2 text-sm font-medium transition-colors mb-1 truncate relative pr-8",
-                          currentTaskId == task.task_id
+                          String(currentTaskId) === String(task.task_id)
                             ? "bg-accent/80 text-accent-foreground font-medium"
                             : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
                         )}

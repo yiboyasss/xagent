@@ -610,6 +610,7 @@ Build when you need.`
     },
   },
   files: {
+    fileTooLarge: "File is too large (max 100MB)",
     header: {
       title: "File Management",
       description: "Manage project files: upload, preview, download, and delete.",

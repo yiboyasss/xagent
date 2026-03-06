@@ -77,6 +77,7 @@ export function ChatInput({
   const [selectedFileIndex, setSelectedFileIndex] = useState(0);
   const [triggerIndex, setTriggerIndex] = useState<number>(-1);
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
+  const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
 
   // Track files for async operations
   const filesRef = useRef(files);
@@ -150,14 +151,6 @@ export function ChatInput({
   // Update filtered files when fileList changes (e.g. after fetch)
   useEffect(() => {
     if (showFilePicker && fileList.length > 0 && triggerIndex !== -1) {
-       const text = isControlled ? inputValue || "" : internalMessage;
-       // We assume cursor is at the end of what we typed, but better to re-evaluate based on triggerIndex
-       // Actually checkTrigger logic handles the filtering on typing.
-       // But if files arrive AFTER typing #, we need to filter them.
-       // Let's just use the current text if possible, but we don't have cursor here easily.
-       // Simple fallback: show all files if query is empty or just update when user types next char.
-       // Or better: re-run filter logic if fileList changes.
-       // We can extract the query from current message and triggerIndex.
        if (message.length > triggerIndex) {
          const query = message.slice(triggerIndex + 1).split(/[\s\n]/)[0];
          const lowerQuery = query.toLowerCase();
@@ -168,40 +161,27 @@ export function ChatInput({
           setFilteredFiles(filtered);
        }
     }
-  }, [fileList, showFilePicker, triggerIndex, message, isControlled, inputValue, internalMessage]);
+  }, [fileList, showFilePicker, triggerIndex, message]);
 
   const insertFile = async (file: FileItem) => {
-    const text = isControlled ? inputValue || "" : internalMessage;
-    if (triggerIndex === -1) return;
+    const fileId = file.relative_path || file.filename;
+    if (downloadingFile) return;
 
-    // Find end of the query word
-    let endIndex = text.indexOf(" ", triggerIndex);
-    if (endIndex === -1) endIndex = text.indexOf("\n", triggerIndex);
-    if (endIndex === -1) endIndex = text.length;
+    setDownloadingFile(fileId);
 
-    const prefix = text.slice(0, triggerIndex);
-    const suffix = text.slice(endIndex);
-
-    // Remove the #query part entirely since we're attaching the file
-    const newText = prefix + suffix;
-
-    if (isControlled) {
-      onInputChange?.(newText);
-    } else {
-      setInternalMessage(newText);
-    }
-
-    setShowFilePicker(false);
-    setTriggerIndex(-1);
-
-    // Fetch and attach file
     try {
       const filePath = file.relative_path || file.filename;
-
       const response = await apiRequest(`${getApiUrl()}/api/files/download/${encodeURIComponent(filePath)}`);
 
       if (response.ok) {
         const blob = await response.blob();
+
+        const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+        if (blob.size > MAX_FILE_SIZE) {
+          toast.error(t("files.fileTooLarge"));
+          return;
+        }
+
         const newFile = new File([blob], file.filename, {
           type: file.file_type || blob.type || 'application/octet-stream',
           lastModified: file.modified_time * 1000
@@ -211,6 +191,28 @@ export function ChatInput({
           // Use ref to get latest files to avoid stale closure
           onFilesChange([...filesRef.current, newFile]);
         }
+
+        // Success: Remove query from text and close picker
+        const currentText = textareaRef.current?.value || (isControlled ? inputValue || "" : internalMessage);
+
+        if (triggerIndex !== -1) {
+            let endIndex = currentText.indexOf(" ", triggerIndex);
+            if (endIndex === -1) endIndex = currentText.indexOf("\n", triggerIndex);
+            if (endIndex === -1) endIndex = currentText.length;
+
+            const prefix = currentText.slice(0, triggerIndex);
+            const suffix = currentText.slice(endIndex);
+            const newText = prefix + suffix;
+
+            if (isControlled) {
+                onInputChange?.(newText);
+            } else {
+                setInternalMessage(newText);
+            }
+        }
+
+        setShowFilePicker(false);
+        setTriggerIndex(-1);
       } else {
         console.error("Failed to download file:", response.statusText);
         toast.error(t("files.downloadFailed") || "Failed to download file");
@@ -218,10 +220,11 @@ export function ChatInput({
     } catch (error) {
       console.error("Error fetching file:", error);
       toast.error(t("files.downloadFailed") || "Failed to download file");
+    } finally {
+      setDownloadingFile(null);
+      // Restore focus
+      setTimeout(() => textareaRef.current?.focus(), 0);
     }
-
-    // Restore focus
-    setTimeout(() => textareaRef.current?.focus(), 0);
   };
 
 
@@ -415,7 +418,7 @@ export function ChatInput({
             const mime = item.type || file.type || 'application/octet-stream';
             const ext = mime.split('/')[1] || 'bin';
             // If it was image.png, preserve extension but make unique. Otherwise default to pasted-file
-            const baseName = (hasName && file.name === 'image.png')
+            const baseName = file.name === 'image.png'
               ? `image-${timestamp}-${index}`
               : `pasted-file-${timestamp}-${index}`;
 
@@ -501,11 +504,16 @@ export function ChatInput({
                     key={index}
                     className={cn(
                       "flex items-center gap-2 px-3 py-2 text-sm rounded-md cursor-pointer transition-colors overflow-scroll",
-                      index === selectedFileIndex ? "bg-accent text-accent-foreground" : "hover:bg-muted"
+                      index === selectedFileIndex ? "bg-accent text-accent-foreground" : "hover:bg-muted",
+                      downloadingFile === (file.relative_path || file.filename) && "opacity-70"
                     )}
                     onClick={() => insertFile(file)}
                   >
-                    <FileIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    {downloadingFile === (file.relative_path || file.filename) ? (
+                      <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+                    ) : (
+                      <FileIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    )}
                     <div className="flex flex-col items-start">
                       <span className="truncate font-medium">{file.filename}</span>
                       {file.relative_path && file.relative_path !== file.filename && (
@@ -548,7 +556,7 @@ export function ChatInput({
           onBlur={() => setIsFocused(false)}
           placeholder={t("chatPage.input.placeholder")}
           className="min-h-[130px] max-h-[300px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 pb-14 text-[15px] placeholder:text-muted-foreground/60"
-          disabled={isLoading}
+          disabled={isLoading || !!downloadingFile}
         />
 
         {/* Bottom toolbar */}
