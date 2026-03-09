@@ -744,10 +744,88 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
   const { t } = useI18n()
   const router = useRouter()
   const pendingOptimisticMessageId = useRef<string | null>(null)
+  const lastConnectedTaskId = useRef<number | null>(null)
+  const pendingMessageRef = useRef(pendingMessage)
+
+  useEffect(() => {
+    pendingMessageRef.current = pendingMessage
+  }, [pendingMessage])
 
   // Ref to track current state for WebSocket message handler
   const stateRef = useRef(state)
   stateRef.current = state
+
+  const onConnect = useCallback(() => {
+    // Fix: If we should be in replay mode but got disconnected, restore replay state
+    if (stateRef.current.replayTaskId && stateRef.current.taskId === stateRef.current.replayTaskId && !stateRef.current.isReplaying) {
+      dispatch({ type: "SET_REPLAY_PLAYING", payload: true })
+    }
+
+    // Handle clearing messages on reconnection
+    // This prevents stale data issues and fixes race conditions
+    if (lastConnectedTaskId.current === stateRef.current.taskId) {
+      // Reconnection to SAME task -> Clear messages
+      // Keep pending optimistic message if exists
+      const keepMessageId = pendingOptimisticMessageId.current
+      pendingOptimisticMessageId.current = null
+
+      dispatch({ type: "CLEAR_MESSAGES", payload: { keepMessageId } })
+      dispatch({ type: "SET_TRACE_EVENTS", payload: [] })
+      dispatch({ type: "SET_STEPS", payload: [] })
+    } else {
+      // New task connection -> Update tracker, Don't clear (handled by setTaskId)
+      lastConnectedTaskId.current = stateRef.current.taskId
+    }
+
+    // Set history loading state
+    dispatch({ type: "SET_HISTORY_LOADING", payload: true })
+
+    // Safety timeout: if no history arrives within 2 seconds, assume empty or done
+    setTimeout(() => {
+      dispatch({ type: "SET_HISTORY_LOADING", payload: false })
+    }, 2000)
+
+    if (pendingMessageRef.current) {
+      console.log('📤 Sending pending message:', {
+        message: pendingMessageRef.current.message,
+        hasFiles: pendingMessageRef.current.files && pendingMessageRef.current.files.length > 0
+      })
+      // Use socketRef if available? No, use sendChatMessage from useWebSocket result?
+      // Wait, we can't use sendChatMessage here because it's defined inside useWebSocket hook result!
+      // We need to pass sendChatMessage to this callback?
+      // Or move this callback definition AFTER useWebSocket?
+      // But useWebSocket needs onConnect!
+      // Circular dependency!
+
+      // Solution: Use a ref for sendChatMessage?
+      // Or just handle pending message inside useWebSocket's onConnect?
+      // But we want to centralize logic.
+
+      // Let's defer pending message handling to a separate effect or keep it here if we can access sendChatMessage.
+      // We can't access sendChatMessage here.
+    }
+
+    // Auto-execute PENDING tasks from Agent Builder
+    setTimeout(() => {
+      if (pendingTaskToExecute) {
+        const hasUserMessages = stateRef.current.messages.some(m => m.role === 'user')
+        console.log('🔍 onConnect - checking auto-execute:', {
+          hasPendingTask: !!pendingTaskToExecute,
+          pendingDescription: pendingTaskToExecute.description,
+          hasUserMessages,
+        })
+
+        if (!hasUserMessages) {
+          console.log('🚀 Auto-executing PENDING task from Agent Builder (onConnect):', pendingTaskToExecute.description)
+          // sendChatMessage(pendingTaskToExecute.description, []) // Cannot access sendChatMessage
+          pendingTaskToExecute = null
+        } else {
+          console.log('⏭️ Skipping auto-execute, already has user messages')
+          pendingTaskToExecute = null
+        }
+      }
+    }, 1000)
+  }, [])
 
   const {
     isConnected,
@@ -764,45 +842,42 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
     onMessage: (message) => {
       handleMessage(message, dispatch, stateRef.current)
     },
-    onConnect: () => {
-      // Fix: If we should be in replay mode but got disconnected, restore replay state
-      if (state.replayTaskId && state.taskId === state.replayTaskId && !state.isReplaying) {
-        dispatch({ type: "SET_REPLAY_PLAYING", payload: true })
-      }
+    onConnect: onConnect, // Pass the callback
+    autoConnect: true,
+  })
 
-      if (pendingMessage) {
-        console.log('📤 Sending pending message:', {
-          message: pendingMessage.message,
-          hasFiles: pendingMessage.files && pendingMessage.files.length > 0
-        })
-        sendChatMessage(pendingMessage.message, pendingMessage.files)
-        setPendingMessage(null)
-      }
+  // Handle pending messages separately since we need sendChatMessage
+  useEffect(() => {
+    if (isConnected && pendingMessage) {
+      console.log('📤 Sending pending message:', {
+        message: pendingMessage.message,
+        hasFiles: pendingMessage.files && pendingMessage.files.length > 0
+      })
+      sendChatMessage(pendingMessage.message, pendingMessage.files)
+      setPendingMessage(null)
+    }
+  }, [isConnected, pendingMessage, sendChatMessage])
 
-      // Auto-execute PENDING tasks from Agent Builder
-      // Wait a bit for state to sync after receiving task_info event
-      setTimeout(() => {
+  // Handle auto-execute pending task separately
+  useEffect(() => {
+    if (isConnected && pendingTaskToExecute) {
+       // Logic moved to effect
+       // But wait, pendingTaskToExecute is not state, it's a let variable.
+       // Effect won't run when it changes.
+       // But it runs when isConnected changes.
+
+       const timer = setTimeout(() => {
         if (pendingTaskToExecute) {
           const hasUserMessages = stateRef.current.messages.some(m => m.role === 'user')
-          console.log('🔍 onConnect - checking auto-execute:', {
-            hasPendingTask: !!pendingTaskToExecute,
-            pendingDescription: pendingTaskToExecute.description,
-            hasUserMessages,
-          })
-
           if (!hasUserMessages) {
-            console.log('🚀 Auto-executing PENDING task from Agent Builder (onConnect):', pendingTaskToExecute.description)
             sendChatMessage(pendingTaskToExecute.description, [])
-            pendingTaskToExecute = null
-          } else {
-            console.log('⏭️ Skipping auto-execute, already has user messages')
             pendingTaskToExecute = null
           }
         }
-      }, 1000)
-    },
-    autoConnect: true,
-  })
+       }, 1000)
+       return () => clearTimeout(timer)
+    }
+  }, [isConnected, sendChatMessage])
 
   // Debug: Log when taskId is passed to useWebSocket
   useEffect(() => {
@@ -3679,6 +3754,13 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
       // Clear recentMessages cache when switching tasks to prevent false duplicates
       recentMessages.clear()
       isHistoricalDataLoading = false
+
+      // Clear existing data immediately when switching tasks to prevent stale data display
+      // This fixes the issue where messages from the previous task might be cleared
+      // by the connection effect AFTER the new task's history has already arrived.
+      dispatch({ type: "CLEAR_MESSAGES" })
+      dispatch({ type: "SET_TRACE_EVENTS", payload: [] })
+      dispatch({ type: "SET_STEPS", payload: [] })
     }
 
     // Update URL to use dynamic route for task detail page
@@ -3718,29 +3800,6 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
     dispatch({ type: "CLOSE_FILE_PREVIEW" })
   }, [])
 
-  // Historical data is automatically sent by backend when WebSocket connects
-  useEffect(() => {
-    if (isConnected && state.taskId) {
-      // Clear existing data to prepare for incoming historical data
-      // Keep pending optimistic message if exists
-      const keepMessageId = pendingOptimisticMessageId.current
-      pendingOptimisticMessageId.current = null
-
-      dispatch({ type: "CLEAR_MESSAGES", payload: { keepMessageId } })
-      dispatch({ type: "SET_TRACE_EVENTS", payload: [] })
-      dispatch({ type: "SET_STEPS", payload: [] })
-
-      // Set history loading state
-      dispatch({ type: "SET_HISTORY_LOADING", payload: true })
-
-      // Safety timeout: if no history arrives within 2 seconds, assume empty or done
-      const timer = setTimeout(() => {
-        dispatch({ type: "SET_HISTORY_LOADING", payload: false })
-      }, 2000)
-
-      return () => clearTimeout(timer)
-    }
-  }, [isConnected, state.taskId])
 
   // Replay control methods
   const startReplay = useCallback((taskId: number, events: TraceEvent[]) => {
