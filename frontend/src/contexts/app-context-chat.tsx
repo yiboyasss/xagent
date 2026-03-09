@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useReducer, useCallback, useEffect, useState, useRef, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { FileText, Target, Zap, CheckCircle, XCircle, Wrench, Activity, Search, Lightbulb, AlertTriangle, Info, Brain, Bot } from "lucide-react"
-import { JsonRenderer } from "../components/ui/markdown-renderer"
+import { JsonRenderer, MarkdownRenderer } from "../components/ui/markdown-renderer"
 import { FileAttachment } from "../components/file-attachment"
 import { ReplayScheduler } from '@/lib/replay-scheduler'
 import { CollapsibleSection } from "../components/collapsible-section"
@@ -909,6 +909,11 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
             if (taskData.status === 'pending' && taskData.description) {
               pendingTaskToExecute = { description: taskData.description }
               console.log('💾 Stored pending task for auto-execution:', taskData.description)
+            }
+
+            // Check if status changed and trigger update if so
+            if (currentState.currentTask?.id === taskData.id.toString() && currentState.currentTask?.status !== taskData.status) {
+               dispatch({ type: "TRIGGER_TASK_UPDATE" })
             }
 
             dispatch({
@@ -1928,9 +1933,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
                   id: msgId,
                   role: "assistant",
                   content: <div className="space-y-2">
-                    <div>
-                      {result.content}
-                    </div>
+                    <MarkdownRenderer content={result.content || ""} />
                     <ClarificationForm
                       interactions={clarification.interactions}
                       timeout={clarification.timeout}
@@ -2302,7 +2305,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
             const msgId = generateMessageId("msg-ai")
             const content = clarification
               ? <>
-                {eventData.content}
+                <MarkdownRenderer content={eventData.content || ""} />
                 <ClarificationForm
                   interactions={clarification.interactions}
                   timeout={clarification.timeout}
@@ -3558,6 +3561,15 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
         hasFiles: files && files.length > 0,
         taskId: state.taskId
       })
+
+      // If task is completed, mark it as running immediately to update sidebar
+      if (state.currentTask?.status === 'completed') {
+        dispatch({
+          type: "UPDATE_TASK_STATUS",
+          payload: { status: 'running' }
+        })
+        dispatch({ type: "TRIGGER_TASK_UPDATE" })
+      }
 
       // Optimistically add the user message to the UI
       if (!isDuplicateMessage(message, 'user-message', config?.force)) {
