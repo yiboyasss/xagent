@@ -1,9 +1,12 @@
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
-from xagent.web.api.websocket import handle_build_preview_execution
-from xagent.web.models.user import User
-from xagent.web.models.model import Model as DBModel
 from sqlalchemy.orm import Session
+
+from xagent.web.api.websocket import handle_build_preview_execution
+from xagent.web.models.model import Model as DBModel
+from xagent.web.models.user import User
+
 
 @pytest.mark.asyncio
 async def test_handle_build_preview_execution_empty_tool_categories():
@@ -16,24 +19,24 @@ async def test_handle_build_preview_execution_empty_tool_categories():
     mock_user = MagicMock(spec=User)
     mock_user.id = 1
     mock_user.is_admin = False
-    
+
     message_data = {
         "instructions": "test instructions",
         "execution_mode": "graph",
         "models": {
             "general": 1,
         },
-        "tool_categories": [], # Empty list to trigger the potential issue
-        "message": "test message"
+        "tool_categories": [],  # Empty list to trigger the potential issue
+        "message": "test message",
     }
 
     # Mock DB Session
     mock_db = MagicMock(spec=Session)
-    
+
     # Mock DB query results for models
     mock_model = MagicMock(spec=DBModel)
     mock_model.model_id = "test-model-id"
-    
+
     # Mock query().filter().first() chain
     mock_query = MagicMock()
     mock_filter = MagicMock()
@@ -42,22 +45,27 @@ async def test_handle_build_preview_execution_empty_tool_categories():
     mock_filter.first.return_value = mock_model
 
     # Mock dependencies
-    with patch("xagent.web.models.database.get_db", return_value=iter([mock_db])), \
-         patch("xagent.web.services.llm_utils.UserAwareModelStorage") as MockStorage, \
-         patch("xagent.core.agent.service.AgentService") as MockAgentService, \
-         patch("xagent.web.api.websocket.WebToolConfig") as MockWebToolConfig, \
-         patch("xagent.core.agent.trace.Tracer"), \
-         patch("xagent.core.memory.in_memory.InMemoryMemoryStore"):
-        
+    with (
+        patch("xagent.web.models.database.get_db", return_value=iter([mock_db])),
+        patch("xagent.web.services.llm_utils.UserAwareModelStorage") as MockStorage,
+        patch("xagent.core.agent.service.AgentService") as MockAgentService,
+        patch("xagent.web.api.websocket.WebToolConfig") as MockWebToolConfig,
+        patch("xagent.core.agent.trace.Tracer"),
+        patch("xagent.core.memory.in_memory.InMemoryMemoryStore"),
+    ):
         mock_storage_instance = MockStorage.return_value
         mock_storage_instance.get_llm_by_name_with_access.return_value = MagicMock()
 
         mock_agent_service = MockAgentService.return_value
-        mock_agent_service.execute_task = AsyncMock(return_value={"output": "success", "status": "completed"})
-        
+        mock_agent_service.execute_task = AsyncMock(
+            return_value={"output": "success", "status": "completed"}
+        )
+
         # Act
         try:
-            await handle_build_preview_execution(mock_websocket, message_data, mock_user)
+            await handle_build_preview_execution(
+                mock_websocket, message_data, mock_user
+            )
         except UnboundLocalError as e:
             pytest.fail(f"UnboundLocalError raised: {e}")
         except Exception as e:
