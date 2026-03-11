@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Progress } from "@/components/ui/progress"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { SelectRadix, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select } from "@/components/ui/select"
 import { getApiUrl } from "@/lib/utils"
 import { appendIngestionConfigToFormData } from "@/lib/ingestion-form"
 import { useAuth } from "@/contexts/auth-context"
@@ -370,17 +370,18 @@ export function KnowledgeBaseCreationDialog({ open, onOpenChange, onSuccess }: K
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{t("kb.dialog.createTitle")}</DialogTitle>
-          <DialogDescription>
-            {t("kb.dialog.createDescription")}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="flex flex-col gap-6">
+      <DialogContent className="sm:max-w-[500px] max-h-[85vh] flex flex-col p-0">
+        <div className="p-6 pb-0">
+          <DialogHeader>
+            <DialogTitle>{t("kb.dialog.createTitle")}</DialogTitle>
+            <DialogDescription>
+              {t("kb.dialog.createDescription")}
+            </DialogDescription>
+          </DialogHeader>
+        </div>
+        <div className="flex-1 overflow-y-auto px-6 space-y-6 flex flex-col gap-6">
           {/* Basic Information */}
-          <div className="space-y-4">
+          <div>
             <h3 className="text-lg font-medium">{t("kb.dialog.basicInfo.title")}</h3>
             <div>
               <Label htmlFor="collection_name">{t("kb.dialog.basicInfo.nameLabel")}</Label>
@@ -419,8 +420,10 @@ export function KnowledgeBaseCreationDialog({ open, onOpenChange, onSuccess }: K
             <TabsContent value="file" className="space-y-4 w-full">
               {/* File Upload */}
               <div className="space-y-4 w-full">
-                <h3 className="text-lg font-medium">{t("kb.dialog.fileUpload.title")}</h3>
-
+                <div className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-blue-500" />
+                  <h3 className="text-lg font-medium">{t("kb.dialog.fileUpload.title")}</h3>
+                </div>
                 {/* File Selection Area */}
                 <div
                   className={`w-full border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:bg-muted/50 transition-colors ${
@@ -730,45 +733,37 @@ export function KnowledgeBaseCreationDialog({ open, onOpenChange, onSuccess }: K
           </Tabs>
 
           {/* Index Configuration */}
-          <div className="space-y-4">
+          <div>
             <h3 className="text-lg font-medium">{t("kb.index.title")}</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="parse_method">{t("kb.index.parseMethod")}</Label>
-                <SelectRadix
+                <Select
                   value={ingestionConfig.parse_method}
                   onValueChange={(value) => setIngestionConfig(prev => ({ ...prev, parse_method: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="default">{t("kb.index.parseOptions.default")}</SelectItem>
-                    <SelectItem value="pypdf">{t("kb.index.parseOptions.pypdf")}</SelectItem>
-                    <SelectItem value="pdfplumber">{t("kb.index.parseOptions.pdfplumber")}</SelectItem>
-                    <SelectItem value="unstructured">{t("kb.index.parseOptions.unstructured")}</SelectItem>
-                    <SelectItem value="pymupdf">{t("kb.index.parseOptions.pymupdf")}</SelectItem>
-                    <SelectItem value="deepdoc">{t("kb.index.parseOptions.deepdoc")}</SelectItem>
-                  </SelectContent>
-                </SelectRadix>
+                  options={[
+                    { value: "default", label: t("kb.index.parseOptions.default") },
+                    { value: "pypdf", label: t("kb.index.parseOptions.pypdf") },
+                    { value: "pdfplumber", label: t("kb.index.parseOptions.pdfplumber") },
+                    { value: "unstructured", label: t("kb.index.parseOptions.unstructured") },
+                    { value: "pymupdf", label: t("kb.index.parseOptions.pymupdf") },
+                    { value: "deepdoc", label: t("kb.index.parseOptions.deepdoc") },
+                  ]}
+                />
               </div>
 
               <div>
                 <Label htmlFor="chunk_strategy">{t("kb.index.chunkStrategy")}</Label>
-                <SelectRadix
+                <Select
                   value={ingestionConfig.chunk_strategy}
                   onValueChange={(value) => setIngestionConfig(prev => ({ ...prev, chunk_strategy: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="recursive">{t("kb.index.chunkOptions.recursive")}</SelectItem>
-                    <SelectItem value="fixed_size">{t("kb.index.chunkOptions.fixed_size")}</SelectItem>
-                    <SelectItem value="markdown">{t("kb.index.chunkOptions.markdown")}</SelectItem>
-                  </SelectContent>
-                </SelectRadix>
+                  options={[
+                    { value: "recursive", label: t("kb.index.chunkOptions.recursive") },
+                    { value: "fixed_size", label: t("kb.index.chunkOptions.fixed_size") },
+                    { value: "markdown", label: t("kb.index.chunkOptions.markdown") },
+                  ]}
+                />
               </div>
 
               <div>
@@ -808,18 +803,11 @@ export function KnowledgeBaseCreationDialog({ open, onOpenChange, onSuccess }: K
 
               <div>
                 <Label htmlFor="embedding_model_id">{t("kb.index.embeddingModelId")}</Label>
-                <SelectRadix value={ingestionConfig.embedding_model_id} onValueChange={(value) => setIngestionConfig(prev => ({ ...prev, embedding_model_id: value }))}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {embeddingModels.map((model) => (
-                      <SelectItem key={model.id} value={model.model_id}>
-                        {model.name || model.model_id}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </SelectRadix>
+                <Select
+                  value={ingestionConfig.embedding_model_id}
+                  onValueChange={(value: string) => setIngestionConfig(prev => ({ ...prev, embedding_model_id: value }))}
+                  options={embeddingModels.map(model => ({ value: model.model_id, label: model.name || model.model_id }))}
+                />
               </div>
 
               <div>
@@ -833,33 +821,32 @@ export function KnowledgeBaseCreationDialog({ open, onOpenChange, onSuccess }: K
               </div>
             </div>
           </div>
-
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => {
-              resetState()
-              onOpenChange(false)
-            }}>
-              {t("common.cancel")}
-            </Button>
-            <Button
-              onClick={() => {
-                if (activeImportTab === 'web') {
-                  handleWebIngest()
-                } else {
-                  handleUpload()
-                }
-              }}
-              disabled={
-                (activeImportTab === 'file' && selectedFiles.length === 0) ||
-                (activeImportTab === 'web' && !webIngestionConfig.start_url) ||
-                isUploading ||
-                isWebIngesting
+        </div>
+        {/* Action Buttons */}
+        <div className="p-6 pt-4 flex justify-end border-t gap-2">
+          <Button variant="outline" onClick={() => {
+            resetState()
+            onOpenChange(false)
+          }}>
+            {t("common.cancel")}
+          </Button>
+          <Button
+            onClick={() => {
+              if (activeImportTab === 'web') {
+                handleWebIngest()
+              } else {
+                handleUpload()
               }
-            >
-              {(isUploading || isWebIngesting) ? t("kb.dialog.fileUpload.processing") : t("kb.index.startImport")}
-            </Button>
-          </div>
+            }}
+            disabled={
+              (activeImportTab === 'file' && selectedFiles.length === 0) ||
+              (activeImportTab === 'web' && !webIngestionConfig.start_url) ||
+              isUploading ||
+              isWebIngesting
+            }
+          >
+            {(isUploading || isWebIngesting) ? t("kb.dialog.fileUpload.processing") : t("kb.index.startImport")}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

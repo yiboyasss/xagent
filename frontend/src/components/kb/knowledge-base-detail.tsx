@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { SelectRadix, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { apiRequest } from "@/lib/api-wrapper"
 import { getApiUrl } from "@/lib/utils"
@@ -665,16 +665,15 @@ export function KnowledgeBaseDetailContent({ collectionName }: { collectionName:
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
                   <Label htmlFor="search_type">{t("kb.detail.search.typeLabel")}</Label>
-                  <SelectRadix value={searchConfig.search_type} onValueChange={(value) => setSearchConfig(prev => ({ ...prev, search_type: value }))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="hybrid">{t("kb.detail.search.types.hybrid")}</SelectItem>
-                      <SelectItem value="dense">{t("kb.detail.search.types.dense")}</SelectItem>
-                      <SelectItem value="sparse">{t("kb.detail.search.types.sparse")}</SelectItem>
-                    </SelectContent>
-                  </SelectRadix>
+                  <Select
+                    value={searchConfig.search_type}
+                    onValueChange={(value) => setSearchConfig(prev => ({ ...prev, search_type: value }))}
+                    options={[
+                      { value: "hybrid", label: t("kb.detail.search.types.hybrid") },
+                      { value: "dense", label: t("kb.detail.search.types.dense") },
+                      { value: "sparse", label: t("kb.detail.search.types.sparse") },
+                    ]}
+                  />
                 </div>
                 <div>
                   <Label htmlFor="top_k">{t("kb.detail.search.topKLabel")}</Label>
@@ -687,18 +686,14 @@ export function KnowledgeBaseDetailContent({ collectionName }: { collectionName:
                 </div>
                 <div>
                   <Label htmlFor="embedding_model_id">{t("kb.detail.search.embeddingModelIdLabel")}</Label>
-                  <SelectRadix value={searchConfig.embedding_model_id} onValueChange={(value) => setSearchConfig(prev => ({ ...prev, embedding_model_id: value }))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {embeddingModels.map((model) => (
-                        <SelectItem key={model.id} value={model.model_id}>
-                          {model.name || model.model_id}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </SelectRadix>
+                  <Select
+                    value={searchConfig.embedding_model_id}
+                    onValueChange={(value) => setSearchConfig(prev => ({ ...prev, embedding_model_id: value }))}
+                    options={embeddingModels.map((model) => ({
+                      value: model.model_id,
+                      label: model.name || model.model_id,
+                    }))}
+                  />
                 </div>
                 <div>
                   <Label htmlFor="rerank_model_id">{t("kb.detail.search.rerankModelIdLabel")}</Label>
@@ -787,33 +782,31 @@ export function KnowledgeBaseDetailContent({ collectionName }: { collectionName:
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="parse_method">{t("kb.index.parseMethod")}</Label>
-                  <SelectRadix value={ingestionConfig.parse_method} onValueChange={(value) => setIngestionConfig(prev => ({ ...prev, parse_method: value }))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="default">{t("kb.index.parseOptions.default")}</SelectItem>
-                      <SelectItem value="pypdf">{t("kb.index.parseOptions.pypdf")}</SelectItem>
-                      <SelectItem value="pdfplumber">{t("kb.index.parseOptions.pdfplumber")}</SelectItem>
-                      <SelectItem value="unstructured">{t("kb.index.parseOptions.unstructured")}</SelectItem>
-                      <SelectItem value="pymupdf">{t("kb.index.parseOptions.pymupdf")}</SelectItem>
-                      <SelectItem value="deepdoc">{t("kb.index.parseOptions.deepdoc")}</SelectItem>
-                    </SelectContent>
-                  </SelectRadix>
+                  <Select
+                    value={ingestionConfig.parse_method}
+                    onValueChange={(value) => setIngestionConfig(prev => ({ ...prev, parse_method: value }))}
+                    options={[
+                      { value: "default", label: t("kb.index.parseOptions.default") },
+                      { value: "pypdf", label: t("kb.index.parseOptions.pypdf") },
+                      { value: "pdfplumber", label: t("kb.index.parseOptions.pdfplumber") },
+                      { value: "unstructured", label: t("kb.index.parseOptions.unstructured") },
+                      { value: "pymupdf", label: t("kb.index.parseOptions.pymupdf") },
+                      { value: "deepdoc", label: t("kb.index.parseOptions.deepdoc") },
+                    ]}
+                  />
                 </div>
 
                 <div>
                   <Label htmlFor="chunk_strategy">{t("kb.index.chunkStrategy")}</Label>
-                  <SelectRadix value={ingestionConfig.chunk_strategy} onValueChange={(value) => setIngestionConfig(prev => ({ ...prev, chunk_strategy: value }))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="recursive">{t("kb.index.chunkOptions.recursive")}</SelectItem>
-                      <SelectItem value="fixed_size">{t("kb.index.chunkOptions.fixed_size")}</SelectItem>
-                      <SelectItem value="markdown">{t("kb.index.chunkOptions.markdown")}</SelectItem>
-                    </SelectContent>
-                  </SelectRadix>
+                  <Select
+                    value={ingestionConfig.chunk_strategy}
+                    onValueChange={(value) => setIngestionConfig(prev => ({ ...prev, chunk_strategy: value }))}
+                    options={[
+                      { value: "recursive", label: t("kb.index.chunkOptions.recursive") },
+                      { value: "fixed_size", label: t("kb.index.chunkOptions.fixed_size") },
+                      { value: "markdown", label: t("kb.index.chunkOptions.markdown") },
+                    ]}
+                  />
                 </div>
 
                 <div>
@@ -853,18 +846,11 @@ export function KnowledgeBaseDetailContent({ collectionName }: { collectionName:
 
                 <div>
                   <Label htmlFor="embedding_model_id_settings">{t("kb.index.embeddingModelId")}</Label>
-                  <SelectRadix value={ingestionConfig.embedding_model_id} onValueChange={(value) => setIngestionConfig(prev => ({ ...prev, embedding_model_id: value }))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {embeddingModels.map((model) => (
-                        <SelectItem key={model.id} value={model.model_id}>
-                          {model.name || model.model_id}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </SelectRadix>
+                  <Select
+                    value={ingestionConfig.embedding_model_id}
+                    onValueChange={(value) => setIngestionConfig(prev => ({ ...prev, embedding_model_id: value }))}
+                    options={embeddingModels.map((model) => ({ value: model.model_id, label: model.name || model.model_id }))}
+                  />
                 </div>
 
                 <div>

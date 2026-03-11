@@ -92,33 +92,33 @@ export function KnowledgeBasePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="w-full p-8">
-        {/* Header */}
-        <div className="flex justify-between items-start mb-8">
-          <div>
-            <h1 className="text-3xl font-bold mb-1">{t("kb.header.title")}</h1>
-            <p className="text-muted-foreground">{t("kb.header.description")}</p>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder={t("kb.search.placeholder")}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Button onClick={() => { setIsCreateDialogOpen(true) }} className="flex items-center gap-2">
-              <Plus size={16} className="mr-2" />
-              {t("kb.header.new")}
-            </Button>
-          </div>
+    <div className="flex flex-col h-full bg-background/50">
+      {/* Header */}
+      <div className="flex justify-between items-start w-full p-8">
+        <div>
+          <h1 className="text-3xl font-bold mb-1">{t("kb.header.title")}</h1>
+          <p className="text-muted-foreground">{t("kb.header.description")}</p>
         </div>
 
-        {/* Collections Grid */}
+        <div className="flex items-center gap-4">
+          <div className="relative w-64">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder={t("kb.search.placeholder")}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Button onClick={() => { setIsCreateDialogOpen(true) }} className="flex items-center gap-2">
+            <Plus size={16} className="mr-2" />
+            {t("kb.header.new")}
+          </Button>
+        </div>
+      </div>
+
+      {/* Collections Grid */}
+      <div className="flex-1 overflow-y-auto w-full px-8 pb-8">
         {filteredCollections.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCollections.map((collection) => (
@@ -178,33 +178,33 @@ export function KnowledgeBasePage() {
             )}
           </Card>
         )}
-
-        {/* Create Collection Dialog */}
-        <KnowledgeBaseCreationDialog
-          open={isCreateDialogOpen}
-          onOpenChange={setIsCreateDialogOpen}
-          onSuccess={() => {
-            fetchCollections()
-          }}
-        />
-
-        {/* Detail Drawer */}
-        <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-          <SheetContent className="w-[90vw] sm:max-w-[85vw] md:max-w-[1000px] overflow-y-auto">
-            <SheetHeader>
-              <SheetTitle>{selectedCollection || ""}</SheetTitle>
-              <SheetDescription>
-                {selectedCollection ? t("kb.detail.viewingDetails", { name: selectedCollection }) : ""}
-              </SheetDescription>
-            </SheetHeader>
-            <div className="h-full pb-10">
-              {selectedCollection && (
-                <KnowledgeBaseDetailContent collectionName={selectedCollection} />
-              )}
-            </div>
-          </SheetContent>
-        </Sheet>
       </div>
+
+      {/* Create Collection Dialog */}
+      <KnowledgeBaseCreationDialog
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+        onSuccess={() => {
+          fetchCollections()
+        }}
+      />
+
+      {/* Detail Drawer */}
+      <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+        <SheetContent className="w-[90vw] sm:max-w-[85vw] md:max-w-[1000px] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>{selectedCollection || ""}</SheetTitle>
+            <SheetDescription>
+              {selectedCollection ? t("kb.detail.viewingDetails", { name: selectedCollection }) : ""}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="h-full pb-10">
+            {selectedCollection && (
+              <KnowledgeBaseDetailContent collectionName={selectedCollection} />
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
