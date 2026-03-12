@@ -993,7 +993,9 @@ async def handle_file_upload_for_task(
 
                 if agent_service.workspace:
                     agent_service.workspace.register_file(
-                        str(target_path), file_id=str(file_record.file_id)
+                        str(target_path),
+                        file_id=str(file_record.file_id),
+                        db_session=db,
                     )
 
                 # Build file info using normalized filename

@@ -75,7 +75,9 @@ class TaskWorkspace:
         # Create directory structure
         self._ensure_directories()
 
-    def register_file(self, file_path: str, file_id: Optional[str] = None) -> str:
+    def register_file(
+        self, file_path: str, file_id: Optional[str] = None, db_session: Any = None
+    ) -> str:
         resolved_path = self.resolve_path(file_path, default_dir="output")
         if not resolved_path.exists() or not resolved_path.is_file():
             raise FileNotFoundError(f"File not found for registration: {file_path}")
@@ -87,7 +89,7 @@ class TaskWorkspace:
             raise ValueError(f"Path {file_path} is outside workspace") from exc
 
         # Check if file already exists in database
-        existing_file_id = self._get_file_id_from_db(resolved_path)
+        existing_file_id = self._get_file_id_from_db(resolved_path, db_session)
         if existing_file_id:
             return existing_file_id
 
@@ -97,17 +99,23 @@ class TaskWorkspace:
             final_file_id = str(uuid4())
 
         # Create database record
-        self._create_file_record(final_file_id, resolved_path)
+        self._create_file_record(final_file_id, resolved_path, db_session)
 
         return final_file_id
 
-    def _create_file_record(self, file_id: str, file_path: Path) -> None:
+    def _create_file_record(
+        self, file_id: str, file_path: Path, db_session: Any = None
+    ) -> None:
         """Create UploadedFile record in database"""
         from .storage.manager import create_db_session
 
         # Use provided session or create temporary one
-        db = self.db_session if self.db_session else create_db_session()
-        should_close = self.db_session is None
+        if db_session:
+            db = db_session
+            should_close = False
+        else:
+            db = self.db_session if self.db_session else create_db_session()
+            should_close = self.db_session is None
 
         try:
             from ..web.models.task import Task
@@ -170,14 +178,22 @@ class TaskWorkspace:
             if should_close:
                 db.close()
 
-    def _get_file_id_from_db(self, file_path: Path) -> Optional[str]:
+    def _get_file_id_from_db(
+        self, file_path: Path, db_session: Any = None
+    ) -> Optional[str]:
         """Get file_id from database by file path."""
         from .storage.manager import create_db_session
 
         try:
             from ..web.models.uploaded_file import UploadedFile
 
-            db = create_db_session()
+            if db_session:
+                db = db_session
+                should_close = False
+            else:
+                db = create_db_session()
+                should_close = True
+
             try:
                 record = (
                     db.query(UploadedFile)
@@ -188,7 +204,8 @@ class TaskWorkspace:
                     return str(record.file_id)
                 return None
             finally:
-                db.close()
+                if should_close:
+                    db.close()
         except Exception as e:
             logger.warning(f"Failed to query file_id from database: {e}")
             return None

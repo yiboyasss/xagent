@@ -649,6 +649,11 @@ class AgentServiceManager:
                         system_prompt, kb_list
                     )
 
+                    # Extract memory similarity threshold from agent config
+                    memory_similarity_threshold = None
+                    if agent_config and "memory_similarity_threshold" in agent_config:
+                        memory_similarity_threshold = agent_config["memory_similarity_threshold"]
+
                     # Create AgentService first (this creates the workspace)
                     self._agents[task_id] = AgentService(
                         name=f"web_chat_agent_task_{task_id}",
@@ -670,7 +675,7 @@ class AgentServiceManager:
                             UPLOADS_DIR / f"user_{user.id}"
                         ),  # Use user-isolated base directory
                         task_id=str(task_id),  # Pass task_id for proper tracing
-                        memory_similarity_threshold=None,  # Will be set from task config
+                        memory_similarity_threshold=memory_similarity_threshold,  # Set from task config
                         system_prompt=system_prompt,  # Pass agent builder instructions
                         **agent_kwargs,  # Pass Text2SQL-specific parameters
                     )
@@ -1425,12 +1430,6 @@ async def create_task(
             f"Setting LLM configuration for task {task.id} with llm_names: {request.llm_names}"
         )
         get_agent_manager(request).set_task_llms(int(task.id), request.llm_names, db)
-
-        # Set memory similarity threshold for this task if provided
-        if request.memory_similarity_threshold is not None:
-            get_agent_manager().set_task_memory_similarity_threshold(
-                int(task.id), request.memory_similarity_threshold
-            )
 
         return TaskCreateResponse(
             task_id=task.id,

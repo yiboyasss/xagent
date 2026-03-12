@@ -56,17 +56,6 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   const tokenRef = useRef(token || authToken) // Prioritize passed token, otherwise use auth token
   const maxReconnectAttempts = 3
 
-  // Update taskId ref when taskId changes
-  useEffect(() => {
-    console.log('🔄 taskId useEffect called:', {
-      currentTaskId: taskId,
-      currentRefValue: taskIdRef.current,
-      taskIdType: typeof taskId
-    })
-    taskIdRef.current = taskId
-    console.log('🔄 taskIdRef updated:', taskId)
-  }, [taskId])
-
   // Update token ref when token changes
   useEffect(() => {
     console.log('🔄 token useEffect called:', {
@@ -377,6 +366,30 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     isConnectingRef.current = false
   }, [])
 
+  // Update taskId ref when taskId changes
+  useEffect(() => {
+    console.log('🔄 taskId useEffect called:', {
+      currentTaskId: taskId,
+      currentRefValue: taskIdRef.current,
+      taskIdType: typeof taskId
+    })
+
+    // If taskId changes, clear any previous connection errors to allow fresh connection attempt
+    if (taskId !== taskIdRef.current) {
+      setConnectionError(null)
+    }
+    
+    // If taskId changes and we are connected, disconnect to ensure we connect to the new task
+    // logic: if we have a new taskId (different from ref) and we are currently connected
+    if (taskId && taskId !== taskIdRef.current && isConnected) {
+      console.log(`🔄 TaskId changed from ${taskIdRef.current} to ${taskId}, disconnecting old socket...`)
+      disconnect()
+    }
+    
+    taskIdRef.current = taskId
+    console.log('🔄 taskIdRef updated:', taskId)
+  }, [taskId, isConnected, disconnect])
+
   const sendMessage = useCallback((message: Record<string, unknown>) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
       socketRef.current.send(JSON.stringify(message))
@@ -544,7 +557,12 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
   useEffect(() => {
     // Only attempt to connect when taskId changes and autoConnect is enabled
-    if (autoConnect && taskId && !isConnected && !connectionError && !isConnectingRef.current) {
+    // We also check connectionError to avoid infinite loops, but we need to react when it's cleared
+    // Note: We don't check !isConnected here because:
+    // 1. connect() has its own guard checks
+    // 2. When switching tasks, isConnected might still be true from the previous task in this render cycle,
+    //    preventing the new connection if we check it here.
+    if (autoConnect && taskId && !connectionError && !isConnectingRef.current) {
       connect()
     }
 
@@ -562,7 +580,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       setIsConnected(false)
       isConnectingRef.current = false
     }
-  }, [url, taskId, token, authToken, autoConnect]) // Only connect when taskId or URL changes
+  }, [url, taskId, token, authToken, autoConnect, connectionError]) // Added connectionError to dependencies
 
   // Separate effect to handle connection state changes
   useEffect(() => {

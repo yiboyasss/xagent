@@ -414,7 +414,9 @@ function appReducer(state: AppState, action: AppAction): AppState {
         newTaskId: action.payload,
         payloadType: typeof action.payload
       })
-      const newState = { ...state, taskId: action.payload }
+      // Clear messages if task ID changes
+      const messages = state.taskId !== action.payload ? [] : state.messages
+      const newState = { ...state, taskId: action.payload, messages }
       console.log('🔄 Reducer returning new state:', newState)
       return newState
 
