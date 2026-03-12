@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,7 +13,6 @@ import {
   Folder,
   File,
   Loader2,
-  RotateCcw,
   Search,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -75,7 +74,7 @@ export function CloudConnectDialog({
   const isSelected = (id: string) => selectedFiles.some(f => f.id === id)
 
   // Fetch connected accounts
-  const fetchAccounts = async () => {
+  const fetchAccounts = useCallback(async () => {
     if (!provider) return
 
     setAccountsLoading(true)
@@ -91,7 +90,7 @@ export function CloudConnectDialog({
     } finally {
       setAccountsLoading(false)
     }
-  }
+  }, [provider])
 
   // Handle OAuth login
   const handleAuth = () => {
@@ -107,19 +106,20 @@ export function CloudConnectDialog({
       `${provider?.name} Auth`,
       `width=${width},height=${height},left=${left},top=${top}`
     )
+  }
 
-    // Listen for message from popup
+  useEffect(() => {
     const messageHandler = async (event: MessageEvent) => {
       if (event.data?.type === "oauth-success") {
         await fetchAccounts()
         setCloudUser(event.data.email)
-        window.removeEventListener("message", messageHandler)
         toast.success(t("kb.dialog.cloudConnect.auth.success"))
       }
     }
 
     window.addEventListener("message", messageHandler)
-  }
+    return () => window.removeEventListener("message", messageHandler)
+  }, [fetchAccounts, t])
 
   // Toggle selection
   const toggleSelection = (file: CloudFile) => {
@@ -445,7 +445,7 @@ export function CloudConnectDialog({
                   onClick={() => setSelectedFiles([])}
                   disabled={selectedFiles.length === 0}
                 >
-                  <RotateCcw className="h-4 w-4 inline-block" />
+                  {t("kb.dialog.cloudConnect.selectedFiles.clearAll")}
                 </Button>
               </div>
               <ScrollArea className="flex-1 overflow-auto">
