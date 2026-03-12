@@ -652,7 +652,9 @@ class AgentServiceManager:
                     # Extract memory similarity threshold from agent config
                     memory_similarity_threshold = None
                     if agent_config and "memory_similarity_threshold" in agent_config:
-                        memory_similarity_threshold = agent_config["memory_similarity_threshold"]
+                        memory_similarity_threshold = agent_config[
+                            "memory_similarity_threshold"
+                        ]
 
                     # Create AgentService first (this creates the workspace)
                     self._agents[task_id] = AgentService(

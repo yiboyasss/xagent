@@ -378,14 +378,14 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     if (taskId !== taskIdRef.current) {
       setConnectionError(null)
     }
-    
+
     // If taskId changes and we are connected, disconnect to ensure we connect to the new task
     // logic: if we have a new taskId (different from ref) and we are currently connected
     if (taskId && taskId !== taskIdRef.current && isConnected) {
       console.log(`🔄 TaskId changed from ${taskIdRef.current} to ${taskId}, disconnecting old socket...`)
       disconnect()
     }
-    
+
     taskIdRef.current = taskId
     console.log('🔄 taskIdRef updated:', taskId)
   }, [taskId, isConnected, disconnect])
