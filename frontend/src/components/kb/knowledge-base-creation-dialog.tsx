@@ -389,25 +389,81 @@ export function KnowledgeBaseCreationDialog({ open, onOpenChange, onSuccess }: K
     if (totalCloudFiles === 0) return
 
     setIsCloudConnecting(true)
+    setIngestionResults([])
+
     try {
       // Aggregate all selected files from all providers
       const filesToIngest = Object.entries(cloudSelections).flatMap(([provider, files]) =>
         files.map(file => ({ provider, fileId: file.id, fileName: file.name }))
       )
 
-      console.log("Ingesting cloud files:", filesToIngest)
+      // Determine collection name
+      let collectionName = newCollectionName
+      if (!collectionName && filesToIngest.length > 0) {
+        // Use first file name without extension as default collection name
+        collectionName = filesToIngest[0].fileName.replace(/\.[^/.]+$/, "")
+      }
+      if (!collectionName) collectionName = "cloud_collection"
 
-      // Simulate ingestion process
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // Prepare separators
+      let separators: string[] | undefined = undefined
+      if (ingestionConfig.separators) {
+        try {
+          const parsed = JSON.parse(ingestionConfig.separators)
+          if (Array.isArray(parsed) && parsed.every(s => typeof s === 'string')) {
+            separators = parsed
+          }
+        } catch (e) {
+          console.warn("Invalid separators JSON", e)
+        }
+      }
 
-      toast.success(t("kb.dialog.fileUpload.processSuccess"))
+      const requestBody = {
+        files: filesToIngest,
+        collection: collectionName,
+        parse_method: ingestionConfig.parse_method,
+        chunk_strategy: ingestionConfig.chunk_strategy,
+        chunk_size: ingestionConfig.chunk_size,
+        chunk_overlap: ingestionConfig.chunk_overlap,
+        separators: separators,
+        embedding_model_id: ingestionConfig.embedding_model_id,
+        embedding_batch_size: ingestionConfig.embedding_batch_size,
+        max_retries: ingestionConfig.max_retries,
+        retry_delay: ingestionConfig.retry_delay
+      }
 
-      // Reset and close
-      resetState()
-      onOpenChange(false)
-      onSuccess?.()
+      const response = await apiRequest(`${getApiUrl()}/api/kb/ingest-cloud`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(requestBody)
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.detail || t("kb.errors.cloudIngestFailed"))
+      }
+
+      const results: IngestionResult[] = await response.json()
+      setIngestionResults(results)
+
+      // Check for errors
+      const errors = results.filter(r => r.status === 'error')
+      if (errors.length > 0) {
+        toast.error(t("kb.errors.someFilesFailed"))
+        // Don't close dialog so user can see errors
+      } else {
+        toast.success(t("kb.dialog.fileUpload.processSuccess"))
+
+        // Reset and close
+        resetState()
+        onOpenChange(false)
+        onSuccess?.()
+      }
     } catch (error) {
-      toast.error(t("kb.dialog.fileUpload.processFailed"))
+      console.error("Cloud ingest error:", error)
+      toast.error(error instanceof Error ? error.message : t("kb.dialog.fileUpload.processFailed"))
     } finally {
       setIsCloudConnecting(false)
     }

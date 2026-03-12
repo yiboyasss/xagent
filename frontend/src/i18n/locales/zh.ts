@@ -1400,6 +1400,7 @@ Build when you need.`
         selectedFiles: {
           title: "已选文件",
           empty: "未选择文件",
+          clearAll: "清除全部",
         },
         select: {
           driveLabel: "选择硬盘",
