@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { ChevronDown, X } from "lucide-react"
 import { marked } from "marked"
+import { useI18n } from "@/contexts/i18n-context"
 
 interface MultiSelectOption {
   value: string
@@ -49,6 +50,7 @@ const MarkdownDescription = ({ content }: { content: string }) => {
 }
 
 export function MultiSelect({ values, onValuesChange, options, placeholder, className, creatable, searchable, disabled }: MultiSelectProps) {
+  const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const [dropdownDirection, setDropdownDirection] = useState<'down' | 'up'>('down')
   const [inputValue, setInputValue] = useState("")
@@ -183,7 +185,7 @@ export function MultiSelect({ values, onValuesChange, options, placeholder, clas
 
           <div className="max-h-60 overflow-auto">
             {filteredOptions.length === 0 && !creatable ? (
-              <div className="px-3 py-2 text-sm text-muted-foreground">No options available</div>
+              <div className="px-3 py-2 text-sm text-muted-foreground">{t("common.noOptions")}</div>
             ) : (
               filteredOptions.map((option) => (
                 <button

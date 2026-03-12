@@ -11,6 +11,7 @@ from .api.admin_users import router as admin_users_router
 from .api.agents import router as agents_router
 from .api.auth import auth_router
 from .api.chat import chat_router
+from .api.cloud_storage import cloud_router
 from .api.files import file_router
 from .api.kb import kb_router
 from .api.mcp import mcp_router
@@ -114,6 +115,7 @@ memory_router = MemoryManagementRouter(get_memory_store).get_router()
 # 注册API路由
 app.include_router(auth_router)
 app.include_router(chat_router)
+app.include_router(cloud_router)
 app.include_router(file_router)
 app.include_router(kb_router)
 app.include_router(model_router)

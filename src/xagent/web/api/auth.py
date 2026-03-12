@@ -2,10 +2,17 @@
 
 import asyncio
 import hashlib
+import os
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional, cast
 
-from fastapi import APIRouter, Depends, HTTPException, status
+# Relax token scope verification as Google might add extra scopes (like openid)
+os.environ["OAUTHLIB_RELAX_TOKEN_SCOPE"] = "1"
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import HTMLResponse, RedirectResponse
+from google_auth_oauthlib.flow import Flow  # type: ignore
+from googleapiclient.discovery import build  # type: ignore
 from jose import JWTError, jwt
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
@@ -22,6 +29,7 @@ from ..auth_dependencies import get_current_user
 from ..models.database import get_db
 from ..models.system_setting import SystemSetting
 from ..models.user import User, UserDefaultModel, UserModel
+from ..models.user_oauth import UserOAuth
 
 auth_router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
@@ -40,7 +48,9 @@ def create_access_token(
         expire = datetime.now(timezone.utc) + timedelta(
             minutes=ACCESS_TOKEN_EXPIRE_MINUTES
         )
-    to_encode.update({"exp": expire, "type": "access"})
+    to_encode.update({"exp": expire})
+    if "type" not in to_encode:
+        to_encode["type"] = "access"
     encoded_jwt: str = jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
     return encoded_jwt
 
@@ -713,3 +723,226 @@ async def verify_current_token(
             "is_admin": current_user.is_admin,
         },
     }
+
+
+def get_google_client_config() -> Optional[Dict[str, Any]]:
+    """Get Google OAuth client config from env vars"""
+    client_id = os.environ.get("GOOGLE_CLIENT_ID")
+    client_secret = os.environ.get("GOOGLE_CLIENT_SECRET")
+
+    if not client_id or not client_secret:
+        return None
+
+    return {
+        "web": {
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        }
+    }
+
+
+GOOGLE_SCOPES = [
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/userinfo.profile",
+    "https://www.googleapis.com/auth/drive.readonly",
+]
+
+
+@auth_router.get("/google/login")
+async def google_login(
+    token: Optional[str] = None, db: Session = Depends(get_db)
+) -> Any:
+    """Initiate Google OAuth flow"""
+    client_config = get_google_client_config()
+    if not client_config:
+        # Fallback for demo/development if no env vars
+        # In production, this should raise an error
+        # raise HTTPException(
+        #     status_code=500,
+        #     detail="Google OAuth not configured (GOOGLE_CLIENT_ID/SECRET missing)",
+        # )
+        return HTMLResponse(
+            "<h1>Google OAuth Config Missing</h1><p>Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET env vars.</p>",
+            status_code=500,
+        )
+
+    # Verify user token if provided
+    user_id = None
+    if token:
+        payload = verify_token(token)
+        if payload and payload.get("type") == "access":
+            # We need to find the user ID from username (sub)
+            username = payload.get("sub")
+            user = db.query(User).filter(User.username == username).first()
+            if user:
+                user_id = user.id
+
+    # Create state token containing user_id
+    state_data = {"user_id": user_id, "type": "oauth_state"}
+    state = create_access_token(state_data, expires_delta=timedelta(minutes=10))
+
+    # Redirect URI
+    redirect_uri = os.environ.get(
+        "GOOGLE_REDIRECT_URI", "http://localhost:8000/api/auth/google/callback"
+    )
+
+    flow = Flow.from_client_config(
+        client_config, scopes=GOOGLE_SCOPES, redirect_uri=redirect_uri
+    )
+
+    authorization_url, _ = flow.authorization_url(
+        access_type="offline",
+        include_granted_scopes="true",
+        state=state,
+        prompt="consent",  # Force consent to get refresh token
+    )
+
+    response = RedirectResponse(authorization_url)
+
+    # Store PKCE code verifier in cookie
+    if hasattr(flow, "code_verifier") and flow.code_verifier:
+        response.set_cookie(
+            key="google_auth_code_verifier",
+            value=flow.code_verifier,
+            httponly=True,
+            max_age=600,  # 10 minutes
+            samesite="lax",
+            secure=False,  # Set to True in production with HTTPS
+        )
+
+    return response
+
+
+@auth_router.get("/google/callback")
+async def google_callback(request: Request, db: Session = Depends(get_db)) -> Any:
+    """Handle Google OAuth callback"""
+    code = request.query_params.get("code")
+    state = request.query_params.get("state")
+
+    if not code or not state:
+        return HTMLResponse("<h1>Error: Missing code or state</h1>", status_code=400)
+
+    # Verify state
+    payload = verify_token(state)
+    if not payload or payload.get("type") != "oauth_state":
+        return HTMLResponse("<h1>Error: Invalid or expired state</h1>", status_code=400)
+
+    user_id = payload.get("user_id")
+
+    client_config = get_google_client_config()
+    if not client_config:
+        return HTMLResponse(
+            "<h1>Error: Google OAuth not configured</h1>", status_code=500
+        )
+
+    redirect_uri = os.environ.get(
+        "GOOGLE_REDIRECT_URI", "http://localhost:8000/api/auth/google/callback"
+    )
+
+    try:
+        flow = Flow.from_client_config(
+            client_config,
+            scopes=GOOGLE_SCOPES,
+            redirect_uri=redirect_uri,
+        )
+
+        # Restore PKCE code verifier from cookie
+        code_verifier = request.cookies.get("google_auth_code_verifier")
+        if code_verifier:
+            flow.code_verifier = code_verifier
+
+        flow.fetch_token(code=code)
+        credentials = flow.credentials
+
+        # Get user info
+        try:
+            service = build(
+                "oauth2", "v2", credentials=credentials, cache_discovery=False
+            )
+            user_info = service.userinfo().get().execute()
+            email = user_info.get("email")
+            provider_user_id = user_info.get("id")
+        except Exception as e:
+            # Fallback: try to get email from id_token if available
+            if hasattr(credentials, "id_token") and credentials.id_token:
+                id_token_info = jwt.get_unverified_claims(credentials.id_token)
+                email = id_token_info.get("email")
+                provider_user_id = id_token_info.get("sub")
+            else:
+                raise e
+
+        # Save to DB if user_id is present
+        if user_id:
+            # Check if exists by provider_user_id (Google user ID)
+            oauth_account = (
+                db.query(UserOAuth)
+                .filter(
+                    UserOAuth.user_id == user_id,
+                    UserOAuth.provider == "google-drive",
+                    UserOAuth.provider_user_id == provider_user_id,
+                )
+                .first()
+            )
+
+            if not oauth_account:
+                oauth_account = UserOAuth(
+                    user_id=user_id,
+                    provider="google-drive",
+                    provider_user_id=provider_user_id,
+                )
+                db.add(oauth_account)
+
+            oauth_account.access_token = credentials.token
+            oauth_account.refresh_token = credentials.refresh_token
+            oauth_account.token_type = "Bearer"  # type: ignore
+            scope_val = " ".join(credentials.scopes) if credentials.scopes else ""
+            oauth_account.scope = scope_val  # type: ignore
+            oauth_account.provider_user_id = provider_user_id
+            oauth_account.email = email
+            if credentials.expiry:
+                oauth_account.expires_at = credentials.expiry
+
+            db.commit()
+        else:
+            return HTMLResponse(
+                "<h1>Authentication Failed</h1><p>User session not found. Please ensure you are logged in to the application.</p>",
+                status_code=400,
+            )
+
+        # Return success page that posts message to opener
+        response = HTMLResponse(
+            f"""
+        <html>
+            <head>
+                <title>Authentication Successful</title>
+                <script>
+                    window.opener.postMessage({{
+                        type: 'oauth-success',
+                        email: '{email}',
+                        provider: 'google-drive'
+                    }}, "*");
+                    window.close();
+                </script>
+            </head>
+            <body>
+                <h1>Authentication Successful</h1>
+                <p>You can close this window now.</p>
+            </body>
+        </html>
+        """
+        )
+
+        # Clean up cookie
+        response.delete_cookie("google_auth_code_verifier")
+        return response
+
+    except Exception as e:
+        import traceback
+
+        traceback.print_exc()
+        return HTMLResponse(
+            f"<h1>Authentication Failed</h1><p>{str(e)}</p>", status_code=500
+        )

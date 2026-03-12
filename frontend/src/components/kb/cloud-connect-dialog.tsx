@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -6,14 +6,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select } from "@/components/ui/select"
 import { useI18n } from "@/contexts/i18n-context"
+import { useAuth } from "@/contexts/auth-context"
 import {
-  AlertCircle,
-  CheckCircle,
+  Check,
   ChevronRight,
   Folder,
-  File
+  File,
+  Loader2,
+  RotateCcw,
+  Search,
 } from "lucide-react"
 import { toast } from "sonner"
+import { getApiUrl } from "@/lib/utils"
+import { apiRequest } from "@/lib/api-wrapper"
 
 export interface CloudFile {
   id: string
@@ -23,11 +28,24 @@ export interface CloudFile {
   updatedAt?: string
 }
 
+interface ConnectedAccount {
+  id: number
+  provider: string
+  email: string
+  created_at: string
+}
+
 interface CloudConnectDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  provider: string | null
-  initialSelectedIds?: string[]
+  provider: {
+    id: string
+    name: string
+    hasDrives: boolean
+    authPath: string
+    logo: string
+  } | null
+  initialSelectedFiles?: CloudFile[]
   onConfirm: (selectedFiles: CloudFile[]) => void
 }
 
@@ -35,89 +53,212 @@ export function CloudConnectDialog({
   open,
   onOpenChange,
   provider,
-  initialSelectedIds = [],
+  initialSelectedFiles = [],
   onConfirm
 }: CloudConnectDialogProps) {
   const { t } = useI18n()
+  const { token } = useAuth()
 
   // Internal state
-  // const [authStep, setAuthStep] = useState<'auth' | 'select'>('auth') // Removed separate auth step
-  const [cloudUser, setCloudUser] = useState<string | null>(null)
-  const [selectedDrive, setSelectedDrive] = useState<string>("my-drive")
-  const [currentPath, setCurrentPath] = useState<string[]>([])
-  const [selectedIds, setSelectedIds] = useState<string[]>([])
-  const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false) // New state for auth popup
+  const [cloudUser, setCloudUser] = useState<string | undefined>()
+  const [selectedDrive, setSelectedDrive] = useState<string>("")
+  const [currentPath, setCurrentPath] = useState<{id: string, name: string}[]>([])
+  const [selectedFiles, setSelectedFiles] = useState<CloudFile[]>([])
+  const [files, setFiles] = useState<CloudFile[]>([])
+  const [searchQuery, setSearchQuery] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [accountsLoading, setAccountsLoading] = useState(false)
+  const [connectedAccounts, setConnectedAccounts] = useState<ConnectedAccount[]>([])
+  const [driveOptions, setDriveOptions] = useState<{value: string, label: string}[]>([])
 
-  // Mock file system
-  const mockFileSystem: Record<string, CloudFile[]> = {
-    "root": [
-      { id: '1', name: 'Project Specs', type: 'folder', updatedAt: '2023-10-01' },
-      { id: '2', name: 'Meeting Notes.docx', type: 'file', size: '1.2 MB', updatedAt: '2023-10-02' },
-      { id: '3', name: 'Budget.xlsx', type: 'file', size: '450 KB', updatedAt: '2023-10-03' },
-      { id: '4', name: 'Design Assets', type: 'folder', updatedAt: '2023-10-04' },
-      { id: '5', name: 'Product Roadmap.pdf', type: 'file', size: '2.5 MB', updatedAt: '2023-10-05' },
-      { id: '6', name: 'Client Contracts', type: 'folder', updatedAt: '2023-10-06' },
-    ],
-    "Project Specs": [
-      { id: '11', name: 'Technical Requirements.pdf', type: 'file', size: '2.1 MB', updatedAt: '2023-10-01' },
-      { id: '12', name: 'UI-UX Guidelines.pdf', type: 'file', size: '5.4 MB', updatedAt: '2023-10-01' },
-    ],
-    "Design Assets": [
-      { id: '41', name: 'Logo Pack', type: 'folder', updatedAt: '2023-10-04' },
-      { id: '42', name: 'Banner.png', type: 'file', size: '1.2 MB', updatedAt: '2023-10-04' },
-    ],
-    "Logo Pack": [
-      { id: '411', name: 'Logo-Light.svg', type: 'file', size: '12 KB', updatedAt: '2023-10-04' },
-      { id: '412', name: 'Logo-Dark.svg', type: 'file', size: '12 KB', updatedAt: '2023-10-04' },
-    ],
-    "Client Contracts": [
-      { id: '61', name: 'Service Agreement.docx', type: 'file', size: '45 KB', updatedAt: '2023-10-06' },
-      { id: '62', name: 'NDA.pdf', type: 'file', size: '1.2 MB', updatedAt: '2023-10-06' },
-    ]
+  // Helper to check if selected
+  const isSelected = (id: string) => selectedFiles.some(f => f.id === id)
+
+  // Fetch connected accounts
+  const fetchAccounts = async () => {
+    if (!provider) return
+
+    setAccountsLoading(true)
+    try {
+      const response = await apiRequest(`${getApiUrl()}/api/cloud/accounts?provider=${provider.id}`)
+
+      if (response.ok) {
+        const data = await response.json()
+        setConnectedAccounts(data)
+      }
+    } catch (error) {
+      console.error("Failed to fetch connected accounts", error)
+    } finally {
+      setAccountsLoading(false)
+    }
   }
 
-  const getCurrentFiles = () => {
-    const currentFolder = currentPath.length > 0 ? currentPath[currentPath.length - 1] : "root"
-    return mockFileSystem[currentFolder] || []
+  // Handle OAuth login
+  const handleAuth = () => {
+    const width = 500
+    const height = 600
+    const left = window.screen.width / 2 - width / 2
+    const top = window.screen.height / 2 - height / 2
+
+    const authUrl = `${getApiUrl()}/api/auth/${provider?.authPath}/login?token=${token || ''}`
+
+    window.open(
+      authUrl,
+      `${provider?.name} Auth`,
+      `width=${width},height=${height},left=${left},top=${top}`
+    )
+
+    // Listen for message from popup
+    const messageHandler = async (event: MessageEvent) => {
+      if (event.data?.type === "oauth-success") {
+        await fetchAccounts()
+        setCloudUser(event.data.email)
+        window.removeEventListener("message", messageHandler)
+        toast.success(t("kb.dialog.cloudConnect.auth.success"))
+      }
+    }
+
+    window.addEventListener("message", messageHandler)
   }
 
-  const cloudFiles = getCurrentFiles()
+  // Toggle selection
+  const toggleSelection = (file: CloudFile) => {
+    if (isSelected(file.id)) {
+      setSelectedFiles(prev => prev.filter(f => f.id !== file.id))
+    } else {
+      setSelectedFiles(prev => [...prev, file])
+    }
+  }
 
-  const driveOptions = [
-    { value: "my-drive", label: "My Drive" },
-    { value: "shared-drive-1", label: "Shared Drives - Marketing" },
-    { value: "shared-drive-2", label: "Shared Drives - Engineering" },
-  ]
+  // Reset state when provider changes
+  useEffect(() => {
+    setCloudUser(undefined)
+    setSelectedDrive("")
+    setCurrentPath([])
+    setFiles([])
+    setSelectedFiles([])
+    setConnectedAccounts([])
+  }, [provider?.id])
+
+  // Fetch connected accounts on mount
+  useEffect(() => {
+    fetchAccounts()
+  }, [provider?.id])
+
+  // Fetch drives when account changes
+  useEffect(() => {
+    if (!cloudUser || !provider?.hasDrives) return
+
+    const fetchDrives = async () => {
+      try {
+        const selectedAccount = connectedAccounts.find(acc => (acc.email || `Account ${acc.id}`) === cloudUser)
+        const accountIdParam = selectedAccount ? `?account_id=${selectedAccount.id}` : ''
+
+        const response = await apiRequest(`${getApiUrl()}/api/cloud/${provider.id}/drives${accountIdParam}`)
+
+        if (response.ok) {
+          const data = await response.json()
+          const options = data.map((d: any) => ({
+            value: d.id,
+            label: d.name
+          }))
+          setDriveOptions(options)
+
+          // Ensure selectedDrive is valid
+          if (!options.find((o: any) => o.value === selectedDrive)) {
+            if (options.length > 0) setSelectedDrive(options[0].value)
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch drives", error)
+      }
+    }
+
+    fetchDrives()
+  }, [cloudUser, connectedAccounts, provider?.id])
+
+  // Fetch files from backend
+  useEffect(() => {
+    if (!cloudUser || !provider) return
+
+    if (provider.hasDrives && !selectedDrive) return
+
+    const fetchFiles = async () => {
+      // Find selected account ID
+      const selectedAccount = connectedAccounts.find(acc => (acc.email || `Account ${acc.id}`) === cloudUser)
+      if (!selectedAccount) return
+
+      setLoading(true)
+      try {
+        const folderId = currentPath.length > 0
+          ? currentPath[currentPath.length - 1].id
+          : (provider.hasDrives ? selectedDrive : 'root')
+        // Use relative URL or configured API base
+
+        const accountIdParam = `&account_id=${selectedAccount.id}`
+
+        const response = await apiRequest(`${getApiUrl()}/api/cloud/${provider.id}/files?folder_id=${folderId}${accountIdParam}`)
+
+        if (response.ok) {
+          const data = await response.json()
+          setFiles(data)
+        } else {
+          if (response.status === 401) {
+            setCloudUser(undefined) // Reset user if token invalid
+            toast.error(t("kb.dialog.cloudConnect.auth.expired"))
+          } else {
+            toast.error(t("kb.dialog.cloudConnect.error.fetchFailed"))
+          }
+        }
+      } catch (error) {
+        console.error(error)
+        toast.error(t("kb.dialog.cloudConnect.error.fetchFailed"))
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchFiles()
+  }, [cloudUser, currentPath, connectedAccounts, selectedDrive, provider?.id])
 
   // Sync initial selection when opening
+  const prevOpen = useRef(open)
   useEffect(() => {
-    if (open) {
-      setSelectedIds(initialSelectedIds)
+    if (open && !prevOpen.current) {
+      setSelectedFiles(initialSelectedFiles)
     }
-  }, [open, initialSelectedIds])
+    prevOpen.current = open
+  }, [open, initialSelectedFiles])
+
+  // Reset current path when drive changes
+  useEffect(() => {
+    setCurrentPath([])
+  }, [selectedDrive])
 
   const handleConfirm = () => {
-    // Collect all selected files from the entire mock file system
-    const allFiles = Object.values(mockFileSystem).flat()
-    const selectedFiles = allFiles.filter(file => selectedIds.includes(file.id))
     onConfirm(selectedFiles)
     onOpenChange(false)
   }
 
   const handleCancel = () => {
-    // Reset selection to initial on cancel? Or just close?
-    // Usually cancel means discard changes.
-    setSelectedIds(initialSelectedIds)
     onOpenChange(false)
   }
 
+  // Filter files based on search
+  const filteredFiles = files.filter(f =>
+    f.name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  const folders = filteredFiles.filter(f => f.type === 'folder')
+  const fileItems = filteredFiles.filter(f => f.type === 'file')
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] h-[80vh] max-h-[700px] flex flex-col">
+      <DialogContent className="sm:max-w-[900px] h-[80vh] max-h-[800px] flex flex-col">
         <DialogHeader>
           <DialogTitle>
             {t("kb.dialog.cloudConnect.auth.title", {
-              provider: provider === 'google-drive' ? t("kb.dialog.cloudConnect.googleDrive") : (provider || "")
+              provider: provider?.name || t("kb.dialog.cloudConnect.auth.defaultProvider")
             })}
           </DialogTitle>
         </DialogHeader>
@@ -125,154 +266,218 @@ export function CloudConnectDialog({
         <div className="flex-1 overflow-hidden flex flex-col space-y-4 py-4">
           {/* Account Selection Section */}
           <div className="space-y-2">
-            <Label>{t("kb.dialog.cloudConnect.auth.selectAccount")}</Label>
+            <div className="flex items-center gap-2">
+              <Label>{t("kb.dialog.cloudConnect.auth.selectAccount")}</Label>
+              {accountsLoading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+            </div>
             <Select
-              value={cloudUser || "add_new"}
+              disabled={accountsLoading}
+              value={cloudUser}
               onValueChange={(value) => {
                 if (value === "add_new") {
-                  setIsAuthDialogOpen(true)
+                  handleAuth()
                 } else {
                   setCloudUser(value)
                 }
               }}
               options={[
-                ...(cloudUser ? [{ value: cloudUser, label: cloudUser }] : []),
+                ...connectedAccounts
+                  .filter(acc => acc.provider === provider?.id)
+                  .map(acc => ({
+                    value: acc.email || `Account ${acc.id}`,
+                    label: acc.email
+                      ? t("kb.dialog.cloudConnect.auth.accountProviderLabel", { email: acc.email, provider: provider?.name || t("kb.dialog.cloudConnect.auth.defaultProvider") })
+                      : t("kb.dialog.cloudConnect.auth.accountLabel", { id: acc.id })
+                  })),
                 { value: "add_new", label: t("kb.dialog.cloudConnect.auth.addAccount") }
               ]}
+              placeholder={t("kb.dialog.cloudConnect.select.accountPlaceholder")}
             />
           </div>
 
-          {/* Drive and File Selection - Only show if user is connected */}
-          {cloudUser ? (
-            <div className="flex-1 flex flex-col space-y-4 min-h-0">
-              {/* Drive Select */}
-              <div className="space-y-2">
-                <Label>{t("kb.dialog.cloudConnect.select.driveLabel")}</Label>
-                <Select
-                  value={selectedDrive}
-                  onValueChange={setSelectedDrive}
-                  options={driveOptions}
-                />
+          {/* Drive Selection */}
+          {provider?.hasDrives && (
+            <div className="space-y-2">
+              <Label>{t("kb.dialog.cloudConnect.select.driveLabel")}</Label>
+              <Select
+                value={selectedDrive}
+                onValueChange={setSelectedDrive}
+                options={driveOptions}
+                disabled={!cloudUser}
+                placeholder={t("kb.dialog.cloudConnect.select.drivePlaceholder")}
+              />
+            </div>
+          )}
+
+          {/* Main Content Area - Split View */}
+          <div className="flex-1 grid grid-cols-2 gap-6 min-h-0">
+            {/* Left Column: File Browser */}
+            <div className="flex flex-col border rounded-md overflow-hidden">
+              {/* Search Bar */}
+              <div className="p-2 border-b">
+                <div className="relative">
+                  <Input
+                    placeholder={t("kb.dialog.cloudConnect.search.placeholder")}
+                    className="pl-8 h-9"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    disabled={!cloudUser}
+                  />
+                  <div className="absolute left-2.5 top-2.5 text-muted-foreground">
+                    <Search className="h-4 w-4" />
+                  </div>
+                </div>
               </div>
 
-              {/* File List */}
-              <div className="space-y-2 flex-1 flex flex-col min-h-0">
-                <Label>{t("kb.dialog.cloudConnect.select.folderLabel")}</Label>
-                <div className="flex-1 border rounded-md flex flex-col min-h-0">
-                  {/* Breadcrumbs Mock */}
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground p-2 border-b">
+              {/* Breadcrumbs */}
+              <div className="flex items-center gap-1 text-sm text-muted-foreground p-2 border-b bg-muted/20">
+                <span
+                  className="hover:underline cursor-pointer hover:text-foreground transition-colors"
+                  onClick={() => setCurrentPath([])}
+                >
+                  {provider?.hasDrives ? (driveOptions.find(o => o.value === selectedDrive)?.label || selectedDrive) : provider?.name}
+                </span>
+                {currentPath.map((folder, index) => (
+                  <div key={index} className="flex items-center gap-1">
+                    <ChevronRight size={14} />
                     <span
-                      className="hover:underline cursor-pointer"
-                      onClick={() => setCurrentPath([])}
+                      className={`hover:underline cursor-pointer hover:text-foreground transition-colors ${index === currentPath.length - 1 ? "font-medium text-foreground" : ""}`}
+                      onClick={() => setCurrentPath(prev => prev.slice(0, index + 1))}
                     >
-                      {driveOptions.find(o => o.value === selectedDrive)?.label || selectedDrive}
+                      {folder.name}
                     </span>
-                    {currentPath.map((folder, index) => (
-                      <div key={index} className="flex items-center gap-1">
-                        <ChevronRight size={14} />
-                        <span
-                          className={`hover:underline cursor-pointer ${index === currentPath.length - 1 ? "font-medium text-foreground" : ""}`}
-                          onClick={() => setCurrentPath(prev => prev.slice(0, index + 1))}
-                        >
-                          {folder}
-                        </span>
-                      </div>
-                    ))}
                   </div>
+                ))}
+              </div>
 
-                  <ScrollArea className="flex-1 overflow-auto">
-                    <div className="p-2 space-y-1">
-                      {cloudFiles.map((file) => (
-                        <div
-                          key={file.id}
-                          className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded cursor-pointer group"
-                          onClick={() => {
-                            if (file.type === 'folder') {
-                              setCurrentPath(prev => [...prev, file.name])
-                            } else {
-                              // Toggle selection
-                              setSelectedIds(prev =>
-                                prev.includes(file.id)
-                                  ? prev.filter(id => id !== file.id)
-                                  : [...prev, file.id]
-                              )
-                            }
-                          }}
-                        >
-                          <div className="flex items-center justify-center w-5 h-5">
-                            {file.type === 'file' && (
-                              <div className={`w-4 h-4 border rounded flex items-center justify-center ${
-                                selectedIds.includes(file.id) ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground"
-                              }`}>
-                                {selectedIds.includes(file.id) && <CheckCircle className="h-3 w-3" />}
+                {/* File List */}
+                <ScrollArea className="flex-1">
+                  <div className="p-2">
+                    {loading ? (
+                      <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                        <Loader2 className="h-8 w-8 animate-spin mb-2 opacity-50" />
+                        <span className="text-xs">{t("kb.dialog.cloudConnect.loading")}</span>
+                      </div>
+                    ) : (
+                      <>
+                        {folders.length === 0 && fileItems.length === 0 ? (
+                          <div className="text-center text-muted-foreground py-8">
+                            {searchQuery
+                              ? t("kb.dialog.cloudConnect.fileList.noMatchingFiles")
+                              : t("kb.dialog.cloudConnect.fileList.noFiles")}
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            {/* Folders Section */}
+                            {folders.length > 0 && (
+                              <div>
+                                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">
+                                  {t("kb.dialog.cloudConnect.fileList.headers.folders")}
+                                </h3>
+                                <div className="space-y-1">
+                                  {folders.map(folder => (
+                                    <div
+                                      key={folder.id}
+                                      className="flex items-center gap-2 p-2 hover:bg-muted/50 rounded-md cursor-pointer group"
+                                      onClick={() => setCurrentPath(prev => [...prev, { id: folder.id, name: folder.name }])}
+                                    >
+                                      <Folder className="h-5 w-5 text-blue-500 fill-blue-500/20" />
+                                      <span className="truncate flex-1 text-sm font-medium">{folder.name}</span>
+                                      <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Files Section */}
+                            {fileItems.length > 0 && (
+                              <div>
+                                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">
+                                  {t("kb.dialog.cloudConnect.fileList.headers.files")}
+                                </h3>
+                                <div className="space-y-1">
+                                  {fileItems.map(file => {
+                                    const selected = isSelected(file.id)
+                                    return (
+                                      <div
+                                        key={file.id}
+                                        className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors ${
+                                          selected
+                                            ? "bg-primary/10 text-primary hover:bg-primary/15"
+                                            : "hover:bg-muted/50"
+                                        }`}
+                                        onClick={() => toggleSelection(file)}
+                                      >
+                                        <div className={`flex items-center justify-center w-4 h-4 rounded border ${
+                                          selected
+                                            ? "bg-primary border-primary text-primary-foreground"
+                                            : "border-muted-foreground/30 bg-background"
+                                        }`}>
+                                          {selected && <Check className="h-3 w-3" />}
+                                        </div>
+                                        <File className="h-4 w-4 text-muted-foreground" />
+                                        <div className="flex flex-col flex-1 min-w-0">
+                                          <span className="truncate text-sm font-medium">{file.name}</span>
+                                        </div>
+                                      </div>
+                                    )
+                                  })}
+                                </div>
                               </div>
                             )}
                           </div>
-                          {file.type === 'folder' ? (
-                            <Folder className="h-5 w-5 text-blue-400" />
-                          ) : (
-                            <File className="h-5 w-5 text-gray-400" />
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium truncate">{file.name}</div>
-                            <div className="text-xs text-muted-foreground flex gap-2">
-                              {file.size && <span>{file.size}</span>}
-                              <span>{file.updatedAt}</span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </div>
-                <div className="text-xs text-muted-foreground text-right pt-1">
-                  {t("kb.dialog.cloudConnect.select.selectedCount", { count: selectedIds.length })}
-                </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </ScrollArea>
+            </div>
+
+            {/* Right Column: Selected Files */}
+            <div className="flex flex-col border rounded-md overflow-hidden">
+              <div className="p-3 border-b bg-muted/20 font-medium text-sm flex items-center justify-between">
+                {t("kb.dialog.cloudConnect.selectedFiles.title")}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground hover:text-foreground h-8 text-xs"
+                  onClick={() => setSelectedFiles([])}
+                  disabled={selectedFiles.length === 0}
+                >
+                  <RotateCcw className="h-4 w-4 inline-block" />
+                </Button>
               </div>
+              <ScrollArea className="flex-1 overflow-auto">
+                <div className="p-2 space-y-1">
+                  {selectedFiles.map(file => (
+                    <div key={file.id} className="flex items-center gap-2 p-2 rounded-md hover:bg-muted/50 group text-sm cursor-pointer" onClick={() => toggleSelection(file)}>
+                      <div className="w-4 h-4 bg-primary text-primary-foreground rounded flex items-center justify-center">
+                        <Check className="h-3 w-3" />
+                      </div>
+                      <File className="h-4 w-4 text-muted-foreground" />
+                      <span className="truncate flex-1">{file.name}</span>
+                    </div>
+                  ))}
+                  {selectedFiles.length === 0 && (
+                    <div className="p-8 text-center text-muted-foreground text-sm">
+                      {t("kb.dialog.cloudConnect.selectedFiles.empty")}
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
             </div>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed rounded-lg bg-muted/10">
-              <AlertCircle className="h-10 w-10 mb-2 opacity-50" />
-              <p>{t("kb.dialog.cloudConnect.auth.noAccount")}</p>
-            </div>
-          )}
+          </div>
         </div>
 
         <div className="flex justify-end gap-2 pt-2 border-t mt-auto">
           <Button variant="outline" onClick={handleCancel}>
             {t("kb.dialog.cloudConnect.select.cancel")}
           </Button>
-          <Button onClick={handleConfirm} disabled={!cloudUser || selectedIds.length === 0}>
+          <Button onClick={handleConfirm} disabled={selectedFiles.length === 0}>
             {t("kb.dialog.cloudConnect.select.confirm")}
           </Button>
         </div>
-
-        {/* Auth Dialog (Nested) */}
-        <Dialog open={isAuthDialogOpen} onOpenChange={setIsAuthDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{t("kb.dialog.cloudConnect.auth.connectNew")}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg flex items-center gap-3 text-sm text-blue-700 dark:text-blue-300">
-                <AlertCircle className="h-5 w-5 shrink-0" />
-                <p>{t("kb.dialog.cloudConnect.auth.connectDescription", {
-                  provider: provider === 'google-drive' ? t("kb.dialog.cloudConnect.googleDrive") : (provider || "")
-                })}</p>
-              </div>
-              <div className="space-y-2">
-                <Label>{t("kb.dialog.cloudConnect.auth.apiKeyLabel")}</Label>
-                <Input type="password" placeholder="ya29.a0..." />
-              </div>
-              <Button onClick={() => {
-                setCloudUser("demo-user@example.com")
-                setIsAuthDialogOpen(false)
-              }} className="w-full">
-                {t("kb.dialog.cloudConnect.auth.connectButton")}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
       </DialogContent>
     </Dialog>
   )

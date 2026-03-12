@@ -1,4 +1,4 @@
-from typing import Generator
+from typing import Any, Generator
 
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -13,7 +13,8 @@ _SessionLocal: sessionmaker[Session] | None = None
 _engine: Engine | None = None
 
 # Create base model class
-Base = declarative_base()
+# Mypy workaround: explicitly type Base as Any to avoid "variable not valid as type" error
+Base: Any = declarative_base()
 
 
 def get_db() -> Generator[Session, None, None]:
