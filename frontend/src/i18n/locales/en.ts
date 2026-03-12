@@ -18,6 +18,7 @@ const en = {
     taskPaused: "Task Paused",
     noData: "No Data",
     refresh: "Refresh",
+    noOptions: "No options available",
     errors: {
       unknown: "Unknown error",
     },
@@ -1342,13 +1343,30 @@ Build when you need.`
           title: "Connect to {provider}",
           selectAccount: "Select connected account",
           addAccount: "+ Add Account",
-          connectNew: "Connect New Account",
-          connectDescription: "To connect to {provider}, you need to provide an access token or sign in via OAuth.",
-          noAccount: "Please select or add an account to continue",
-          apiKeyLabel: "API Key / Access Token",
-          connectButton: "Connect Account",
-          connected: "Connected as {user}",
-          changeAccount: "Change Account",
+          expired: "Session expired",
+          defaultProvider: "Cloud Provider",
+          accountLabel: "Account {id}",
+          accountProviderLabel: "{email} - {provider}",
+          success: "Connected successfully",
+        },
+        error: {
+          fetchFailed: "Failed to load files",
+        },
+        search: {
+          placeholder: "Search",
+        },
+        loading: "Loading...",
+        fileList: {
+          noMatchingFiles: "No matching files found",
+          noFiles: "No files found",
+          headers: {
+            folders: "Folders",
+            files: "Files",
+          },
+        },
+        selectedFiles: {
+          title: "Selected Files",
+          empty: "No files selected",
         },
         select: {
           driveLabel: "Select Drive",
@@ -1356,6 +1374,8 @@ Build when you need.`
           selectedCount: "{count} files selected",
           confirm: "Confirm Selection",
           cancel: "Cancel",
+          accountPlaceholder: "Select Account",
+          drivePlaceholder: "Select Drive",
         },
       },
       fileUpload: {

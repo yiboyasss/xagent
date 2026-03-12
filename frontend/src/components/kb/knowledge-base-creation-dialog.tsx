@@ -411,6 +411,8 @@ export function KnowledgeBaseCreationDialog({ open, onOpenChange, onSuccess }: K
     {
       id: "google-drive",
       name: t("kb.dialog.cloudConnect.googleDrive"),
+      hasDrives: true,
+      authPath: "google",
       logo: "/google-drive.svg"
     },
   ]
@@ -1000,9 +1002,9 @@ export function KnowledgeBaseCreationDialog({ open, onOpenChange, onSuccess }: K
       <CloudConnectDialog
         open={isCloudDialogOpen}
         onOpenChange={setIsCloudDialogOpen}
-        provider={selectedCloudProvider}
-        initialSelectedIds={
-          selectedCloudProvider ? cloudSelections[selectedCloudProvider]?.map((f) => f.id) || [] : []
+        provider={cloudProviders.find(p => p.id === selectedCloudProvider) || null}
+        initialSelectedFiles={
+          selectedCloudProvider ? cloudSelections[selectedCloudProvider] || [] : []
         }
         onConfirm={(files) => {
           if (selectedCloudProvider) {
