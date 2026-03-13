@@ -785,9 +785,12 @@ async def google_login(
     state = create_access_token(state_data, expires_delta=timedelta(minutes=10))
 
     # Redirect URI
-    redirect_uri = os.environ.get(
-        "GOOGLE_REDIRECT_URI", "http://localhost:8000/api/auth/google/callback"
-    )
+    redirect_uri = os.environ.get("GOOGLE_REDIRECT_URI")
+    if not redirect_uri:
+        return HTMLResponse(
+            "<h1>Google OAuth Config Missing</h1><p>Please set GOOGLE_REDIRECT_URI env var.</p>",
+            status_code=500,
+        )
 
     flow = Flow.from_client_config(
         client_config, scopes=GOOGLE_SCOPES, redirect_uri=redirect_uri
@@ -838,9 +841,12 @@ async def google_callback(request: Request, db: Session = Depends(get_db)) -> An
             "<h1>Error: Google OAuth not configured</h1>", status_code=500
         )
 
-    redirect_uri = os.environ.get(
-        "GOOGLE_REDIRECT_URI", "http://localhost:8000/api/auth/google/callback"
-    )
+    redirect_uri = os.environ.get("GOOGLE_REDIRECT_URI")
+    if not redirect_uri:
+        return HTMLResponse(
+            "<h1>Error: Google OAuth not configured (GOOGLE_REDIRECT_URI missing)</h1>",
+            status_code=500,
+        )
 
     try:
         flow = Flow.from_client_config(
