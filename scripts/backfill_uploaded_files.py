@@ -52,9 +52,15 @@ except ImportError:
 def get_database_url():
     """Get database URL from environment or default."""
     # Try common environment variables
-    db_path = os.environ.get("XAGENT_DB_PATH")
-    if db_path and Path(db_path).exists():
-        return f"sqlite:///{db_path}"
+    db_path = os.environ.get("DATABASE_URL")
+    if db_path:
+        # If it looks like a URL (contains ://), return it directly
+        if "://" in db_path:
+            return db_path
+
+        # If it's a file path, check if it exists and wrap with sqlite:///
+        if Path(db_path).exists():
+            return f"sqlite:///{db_path}"
 
     # Try default location
     default_db = Path(__file__).parent.parent / "xagent.db"
@@ -67,7 +73,7 @@ def get_database_url():
         return f"sqlite:///{data_db}"
 
     raise FileNotFoundError(
-        "Database file not found. Please set XAGENT_DB_PATH environment variable."
+        "Database file not found. Please set DATABASE_URL environment variable."
     )
 
 
