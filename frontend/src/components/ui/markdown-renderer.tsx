@@ -9,6 +9,7 @@ const isLikelyMarkdown = (s: string): boolean => {
   return (
     t.startsWith('#') || // Heading
     s.includes('```') || // Code block
+    s.includes('**') || // Bold
     /(\n|^)\s*(-|\*|\d+\.)\s/.test(s) || // List (unordered/ordered)
     (s.includes('|') && s.includes('---')) || // Table
     /\[[^\]]+\]\([^\)]+\)/.test(s) || // Link [text](url)

@@ -3,20 +3,12 @@
 import { useI18n } from "@/contexts/i18n-context";
 import {
   Search,
-  MessageSquare,
-  BookOpen,
-  Briefcase,
-  Star,
   Play,
   Heart,
   Loader2,
-  Shield,
-  LayoutDashboard,
-  BarChart,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api-wrapper";
@@ -27,7 +19,6 @@ import type { Template } from "@/types/template";
 interface CategorySection {
   id: string;
   title: string;
-  icon: any;
   templates: Template[];
 }
 
@@ -62,30 +53,24 @@ export default function TemplatesPage() {
   ];
 
   // Category display configuration
-  const categoryConfig: Record<string, { title: string; icon: any }> = {
+  const categoryConfig: Record<string, { title: string }> = {
     Featured: {
       title: t("templates.categoryTitles.featured"),
-      icon: Star,
     },
     "Healthcare & Fitness": {
       title: t("templates.categoryTitles.healthcare_fitness"),
-      icon: Heart,
     },
     "General & Productivity": {
       title: t("templates.categoryTitles.general_productivity"),
-      icon: LayoutDashboard,
     },
     "Customer Service": {
       title: t("templates.categoryTitles.customer_service"),
-      icon: MessageSquare,
     },
     "Finance, LMS & Ops": {
       title: t("templates.categoryTitles.finance_lms_ops"),
-      icon: BarChart,
     },
     Security: {
       title: t("templates.categoryTitles.security"),
-      icon: Shield,
     },
   };
 
@@ -110,71 +95,6 @@ export default function TemplatesPage() {
 
     fetchTemplates();
   }, [locale]);
-
-  // Get icon and color for template
-  const getTemplateStyle = (category: string) => {
-    const styles: Record<
-      string,
-      { icon: any; color: string; bgColor: string }
-    > = {
-      Support: {
-        icon: MessageSquare,
-        color: "text-blue-500",
-        bgColor: "bg-blue-500/10",
-      },
-      Sales: {
-        icon: Briefcase,
-        color: "text-green-500",
-        bgColor: "bg-green-500/10",
-      },
-      "Data & Dev": {
-        icon: Play,
-        color: "text-purple-500",
-        bgColor: "bg-purple-500/10",
-      },
-      Marketing: {
-        icon: Star,
-        color: "text-orange-500",
-        bgColor: "bg-orange-500/10",
-      },
-      "Healthcare & Fitness": {
-        icon: Heart,
-        color: "text-rose-500",
-        bgColor: "bg-rose-500/10",
-      },
-      "General & Productivity": {
-        icon: LayoutDashboard,
-        color: "text-teal-500",
-        bgColor: "bg-teal-500/10",
-      },
-      "Customer Service": {
-        icon: MessageSquare,
-        color: "text-indigo-500",
-        bgColor: "bg-indigo-500/10",
-      },
-      "Finance, LMS & Ops": {
-        icon: BarChart,
-        color: "text-yellow-500",
-        bgColor: "bg-yellow-500/10",
-      },
-      Security: {
-        icon: Shield,
-        color: "text-slate-500",
-        bgColor: "bg-slate-500/10",
-      },
-      default: {
-        icon: BookOpen,
-        color: "text-gray-500",
-        bgColor: "bg-gray-500/10",
-      },
-    };
-
-    return (
-      styles[category] ||
-      styles[Object.keys(styles).find((k) => category.includes(k)) || ""] ||
-      styles.default
-    );
-  };
 
   // Group templates by category
   const groupTemplatesByCategory = (
@@ -204,7 +124,6 @@ export default function TemplatesPage() {
       .map(([category, templates]) => ({
         id: category.toLowerCase().replace(/\s+/g, "-"),
         title: categoryConfig[category]?.title || category,
-        icon: categoryConfig[category]?.icon || BookOpen,
         templates,
       }))
       .sort((a, b) => {
@@ -325,34 +244,19 @@ export default function TemplatesPage() {
             {filteredSections.map((section) => (
               <div key={section.id} className="animate-fade-in">
                 {/* Section Header */}
-                <div className="flex items-center gap-2 mb-4 text-foreground/90 font-medium">
-                  <section.icon className="w-5 h-5 text-purple-500" />
+                <div className="gap-2 mb-4 text-foreground/90 font-medium">
                   <h2>{section.title}</h2>
                 </div>
 
                 {/* Templates Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
                   {section.templates.map((template) => {
-                    const style = getTemplateStyle(template.category);
-                    const Icon = style.icon;
-
                     return (
                       <div
                         key={template.id}
                         onClick={() => handleUseTemplate(template.id)}
                         className="cursor-pointer shadow-md p-5 rounded-xl border border-border/40 bg-card hover:border-primary/20 hover:shadow-lg transition-all duration-300"
                       >
-                        <div className="flex items-start justify-between mb-4">
-                          <div
-                            className={cn(
-                              "w-10 h-10 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110",
-                              style.bgColor,
-                            )}
-                          >
-                            <Icon className={cn("w-5 h-5", style.color)} />
-                          </div>
-                        </div>
-
                         <h3 className="font-semibold text-base mb-2 group-hover:text-primary transition-colors">
                           {template.name}
                         </h3>
