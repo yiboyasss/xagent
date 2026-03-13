@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { useRouter } from "next/navigation";
 import { Send, Paperclip, X, File as FileIcon, Sparkles, Pause, Play, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { cn, getApiUrl } from "@/lib/utils";
 import { useI18n } from "@/contexts/i18n-context";
 import { ConfigDialog } from "@/components/config-dialog";
@@ -76,8 +76,8 @@ export function ChatInput({
   const [filteredFiles, setFilteredFiles] = useState<FileItem[]>([]);
   const [selectedFileIndex, setSelectedFileIndex] = useState(0);
   const [triggerIndex, setTriggerIndex] = useState<number>(-1);
+  const [currentQuery, setCurrentQuery] = useState("");
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
-  const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
 
   // Track files for async operations
   const filesRef = useRef(files);
@@ -89,17 +89,30 @@ export function ChatInput({
   const isControlled = inputValue !== undefined;
   const message = isControlled ? inputValue : internalMessage;
 
-  const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newValue = e.target.value;
-    const cursor = e.target.selectionStart;
+  const handleInput = () => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    // Serialize content: replace chips with backticked path
+    const clone = editor.cloneNode(true) as HTMLElement;
+    const chips = clone.querySelectorAll('[data-file-path]');
+    chips.forEach((chip) => {
+      const path = chip.getAttribute('data-file-path');
+      chip.replaceWith(document.createTextNode(`\`${path}\``));
+    });
+
+    // Use innerText to preserve newlines
+    let text = clone.innerText;
+    // Remove zero-width spaces if any (sometimes added by contentEditable)
+    text = text.replace(/\u200B/g, '');
 
     if (isControlled) {
-      onInputChange?.(newValue);
+      onInputChange?.(text);
     } else {
-      setInternalMessage(newValue);
+      setInternalMessage(text);
     }
 
-    checkTrigger(newValue, cursor);
+    checkTrigger();
   };
 
   const fetchFiles = async () => {
@@ -121,117 +134,156 @@ export function ChatInput({
     }
   };
 
-  const checkTrigger = (text: string, cursor: number) => {
-    const textBeforeCursor = text.slice(0, cursor);
-    const lastHashIndex = textBeforeCursor.lastIndexOf("#");
+  const checkTrigger = () => {
+    const selection = window.getSelection();
+    if (!selection || !selection.rangeCount) return;
 
-    if (lastHashIndex !== -1) {
-      // Allow trigger anywhere
-      const query = textBeforeCursor.slice(lastHashIndex + 1);
-      if (!query.includes(" ") && !query.includes("\n")) {
-        setTriggerIndex(lastHashIndex);
-        setShowFilePicker(true);
-        fetchFiles();
+    const range = selection.getRangeAt(0);
+    const node = range.startContainer;
 
-        // Filter files
-        const lowerQuery = query.toLowerCase();
-        const filtered = fileList.filter(f =>
-          (f.filename.toLowerCase().includes(lowerQuery) ||
-           (f.relative_path && f.relative_path.toLowerCase().includes(lowerQuery)))
-        );
-        setFilteredFiles(filtered);
-        setSelectedFileIndex(0);
-        return;
-      }
-    }
-    setShowFilePicker(false);
-    setTriggerIndex(-1);
-  };
+    if (node.nodeType === Node.TEXT_NODE && node.textContent) {
+      const text = node.textContent;
+      const cursor = range.startOffset;
+      const textBefore = text.slice(0, cursor);
+      const lastAt = textBefore.lastIndexOf('@');
 
-  // Update filtered files when fileList changes (e.g. after fetch)
-  useEffect(() => {
-    if (showFilePicker && fileList.length > 0 && triggerIndex !== -1) {
-       if (message.length > triggerIndex) {
-         const query = message.slice(triggerIndex + 1).split(/[\s\n]/)[0];
-         const lowerQuery = query.toLowerCase();
-         const filtered = fileList.filter(f =>
+      if (lastAt !== -1) {
+        const query = textBefore.slice(lastAt + 1);
+        // Basic check: no spaces/newlines in query (simple filenames)
+        if (!query.includes(' ') && !query.includes('\n')) {
+          setTriggerIndex(lastAt); // Note: this index is relative to the text node, not full text!
+          setCurrentQuery(query);
+          // We need to adjust logic if we use this index elsewhere.
+          // But insertFile uses relative logic now, so it's fine.
+
+          setShowFilePicker(true);
+          fetchFiles();
+
+          const lowerQuery = query.toLowerCase();
+          const filtered = fileList.filter(f =>
             (f.filename.toLowerCase().includes(lowerQuery) ||
              (f.relative_path && f.relative_path.toLowerCase().includes(lowerQuery)))
           );
           setFilteredFiles(filtered);
-       }
-    }
-  }, [fileList, showFilePicker, triggerIndex, message]);
-
-  const insertFile = async (file: FileItem) => {
-    const fileId = file.relative_path || file.filename;
-    if (downloadingFile) return;
-
-    setDownloadingFile(fileId);
-
-    try {
-      const filePath = file.relative_path || file.filename;
-      const response = await apiRequest(`${getApiUrl()}/api/files/download/${encodeURIComponent(filePath)}`);
-
-      if (response.ok) {
-        const blob = await response.blob();
-
-        const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
-        if (blob.size > MAX_FILE_SIZE) {
-          toast.error(t("files.fileTooLarge"));
+          setSelectedFileIndex(0);
           return;
         }
-
-        const newFile = new File([blob], file.filename, {
-          type: file.file_type || blob.type || 'application/octet-stream',
-          lastModified: file.modified_time * 1000
-        });
-
-        if (onFilesChange) {
-          // Use ref to get latest files to avoid stale closure
-          onFilesChange([...filesRef.current, newFile]);
-        }
-
-        // Success: Remove query from text and close picker
-        const currentText = textareaRef.current?.value || (isControlled ? inputValue || "" : internalMessage);
-
-        if (triggerIndex !== -1) {
-            let endIndex = currentText.indexOf(" ", triggerIndex);
-            if (endIndex === -1) endIndex = currentText.indexOf("\n", triggerIndex);
-            if (endIndex === -1) endIndex = currentText.length;
-
-            const prefix = currentText.slice(0, triggerIndex);
-            const suffix = currentText.slice(endIndex);
-            const newText = prefix + suffix;
-
-            if (isControlled) {
-                onInputChange?.(newText);
-            } else {
-                setInternalMessage(newText);
-            }
-        }
-
-        setShowFilePicker(false);
-        setTriggerIndex(-1);
-      } else {
-        console.error("Failed to download file:", response.statusText);
-        toast.error(t("files.downloadFailed") || "Failed to download file");
       }
-    } catch (error) {
-      console.error("Error fetching file:", error);
-      toast.error(t("files.downloadFailed") || "Failed to download file");
-    } finally {
-      setDownloadingFile(null);
-      // Restore focus
-      setTimeout(() => textareaRef.current?.focus(), 0);
     }
+
+    setShowFilePicker(false);
+    setTriggerIndex(-1);
+    setCurrentQuery("");
+  };
+
+  // Update filtered files when fileList changes (e.g. after fetch)
+  useEffect(() => {
+    if (showFilePicker && fileList.length > 0) {
+       const lowerQuery = currentQuery.toLowerCase();
+       const filtered = fileList.filter(f =>
+          (f.filename.toLowerCase().includes(lowerQuery) ||
+           (f.relative_path && f.relative_path.toLowerCase().includes(lowerQuery)))
+        );
+        setFilteredFiles(filtered);
+    }
+  }, [fileList, showFilePicker, currentQuery]);
+
+  const insertFile = (file: FileItem) => {
+    const filePath = file.relative_path || file.filename;
+    const chipHTML = createFileChipHTML(filePath);
+
+    // Focus editor first
+    editorRef.current?.focus();
+
+    const selection = window.getSelection();
+    if (!selection || !selection.rangeCount) return;
+
+    const range = selection.getRangeAt(0);
+    const node = range.startContainer;
+
+    // Check if we are in a text node and can find the trigger
+    if (node.nodeType === Node.TEXT_NODE && node.textContent) {
+      const text = node.textContent;
+      const cursor = range.startOffset;
+      const textBefore = text.slice(0, cursor);
+      const atIndex = textBefore.lastIndexOf('@');
+
+      if (atIndex !== -1) {
+        // Select from @ to cursor
+        range.setStart(node, atIndex);
+        range.setEnd(node, cursor);
+        selection.removeAllRanges();
+        selection.addRange(range);
+
+        // Delete the @query text
+        document.execCommand('delete');
+
+        // Insert the chip
+        document.execCommand('insertHTML', false, chipHTML);
+      }
+    } else {
+       // Fallback: just insert at cursor
+       document.execCommand('insertHTML', false, chipHTML);
+    }
+
+    setShowFilePicker(false);
+    setTriggerIndex(-1);
+    setCurrentQuery("");
+
+    // Update state manually
+    handleInput();
   };
 
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
   const isSubmittingRef = useRef(false);
   const { t } = useI18n();
+
+  const createFileChipHTML = (path: string) => {
+    const fileName = path.split('/').pop() || path;
+    const iconHtml = renderToStaticMarkup(<FileIcon className="w-3.5 h-3.5 text-primary" />);
+    const deleteIconHtml = renderToStaticMarkup(<X className="w-3.5 h-3.5 text-destructive cursor-pointer" />);
+
+    return `
+      <span contenteditable="false" data-file-path="${path}" class="inline-flex items-center gap-1.5 align-middle bg-secondary/80 border border-border/50 rounded-md px-1.5 py-0.2 text-sm select-none group cursor-default shadow-sm transition-all hover:bg-secondary hover:border-primary/30">
+        <span class="relative w-3.5 h-3.5 flex items-center justify-center">
+          <span class="absolute inset-0 flex items-center justify-center transition-opacity group-hover:opacity-0">
+            ${iconHtml}
+          </span>
+          <button type="button" class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity file-chip-delete">
+            ${deleteIconHtml}
+          </button>
+        </span>
+        <span class="text-[11px] font-medium text-foreground/70 truncate max-w-[200px]">${fileName}</span>
+      </span><span>&nbsp;</span>
+    `.trim();
+  };
+
+  // Handle click on delete button in chips
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const deleteBtn = target.closest('.file-chip-delete');
+      if (deleteBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const chip = deleteBtn.closest('[data-file-path]');
+        if (chip) {
+          chip.remove();
+          // Trigger input event manually to update state
+          const event = new Event('input', { bubbles: true });
+          editor.dispatchEvent(event);
+        }
+      }
+    };
+
+    editor.addEventListener('click', handleClick);
+    return () => editor.removeEventListener('click', handleClick);
+  }, []);
   const [agentConfig, setAgentConfig] = useState<{
     model: string;
     smallFastModel?: string;
@@ -398,7 +450,7 @@ export function ChatInput({
     }
   };
 
-  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+  const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
     const items = Array.from(e.clipboardData.items || []);
     const fileItems = items.filter(item => item.kind === 'file');
 
@@ -434,6 +486,13 @@ export function ChatInput({
       if (pastedFiles.length > 0) {
         onFilesChange?.([...files, ...pastedFiles]);
       }
+    } else {
+      // Strip formatting from text paste
+      e.preventDefault();
+      const text = e.clipboardData.getData("text/plain");
+      document.execCommand("insertText", false, text);
+      // Trigger input handling manually as execCommand might not bubble up to React's onInput reliably in all browsers
+      handleInput();
     }
   };
 
@@ -448,6 +507,22 @@ export function ChatInput({
   const removeFile = (index: number) => {
     onFilesChange?.(files.filter((_, i) => i !== index));
   };
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    if (!message) {
+      if (editor.innerHTML !== "") {
+        editor.innerHTML = "";
+      }
+    } else if (document.activeElement !== editor && editor.innerText.trim() === "") {
+      const html = message.replace(/`([^`]+)`/g, (match, path) => {
+        return createFileChipHTML(path);
+      });
+      editor.innerHTML = html;
+    }
+  }, [message]);
 
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return bytes + " B";
@@ -504,17 +579,13 @@ export function ChatInput({
                     key={index}
                     className={cn(
                       "flex items-center gap-2 px-3 py-2 text-sm rounded-md cursor-pointer transition-colors overflow-scroll",
-                      index === selectedFileIndex ? "bg-accent text-accent-foreground" : "hover:bg-muted",
-                      downloadingFile === (file.relative_path || file.filename) && "opacity-70"
+                      index === selectedFileIndex ? "bg-accent text-accent-foreground" : "hover:bg-muted"
                     )}
                     onClick={() => insertFile(file)}
+                    onMouseDown={(e) => e.preventDefault()}
                   >
-                    {downloadingFile === (file.relative_path || file.filename) ? (
-                      <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
-                    ) : (
-                      <FileIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    )}
-                    <div className="flex flex-col items-start">
+                    <FileIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <div className="flex flex-col overflow-hidden">
                       <span className="truncate font-medium">{file.filename}</span>
                       {file.relative_path && file.relative_path !== file.filename && (
                         <span className="truncate text-xs text-muted-foreground">{file.relative_path}</span>
@@ -540,24 +611,26 @@ export function ChatInput({
           style={{ opacity: isFocused ? 1 : 0 }}
         />
 
-        <Textarea
-          ref={textareaRef}
-          value={message}
-          onClick={() => {
-            if (showFilePicker) {
-              setShowFilePicker(false);
-              setTriggerIndex(-1);
-            }
-          }}
-          onChange={handleMessageChange}
+        <div
+          ref={editorRef}
+          contentEditable
+          className={cn(
+            "min-h-[130px] max-h-[300px] w-full rounded-md border-0 bg-transparent px-3 py-2 text-[15px] outline-none placeholder:text-muted-foreground/60 overflow-y-auto resize-none focus-visible:ring-0 focus-visible:ring-offset-0 pb-14 whitespace-pre-wrap break-words text-left",
+            isLoading ? "opacity-50 pointer-events-none" : ""
+          )}
+          onInput={handleInput}
           onKeyDown={handleKeyDown}
-          onPaste={handlePaste}
+          onPaste={handlePaste as any}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          placeholder={t("chatPage.input.placeholder")}
-          className="min-h-[130px] max-h-[300px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 pb-14 text-[15px] placeholder:text-muted-foreground/60"
-          disabled={isLoading || !!downloadingFile}
+          role="textbox"
+          aria-multiline="true"
         />
+        {!message && (
+          <div className="absolute top-2 left-3 text-muted-foreground/60 pointer-events-none text-[14px]">
+            {t("chatPage.input.placeholder")}
+          </div>
+        )}
 
         {/* Bottom toolbar */}
         <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-4 py-3 bg-gradient-to-t from-card via-card to-transparent">

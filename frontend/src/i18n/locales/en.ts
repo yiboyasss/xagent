@@ -1147,7 +1147,7 @@ Build when you need.`
       compact: "Long Context Model",
       embedding: "Embedding Model",
       image: "Image Generation Model",
-      image_edit: "Image Edit",
+      image_edit: "Image Edit Model",
       shared: "Shared",
       shared_from_others: "Public Model",
     },
