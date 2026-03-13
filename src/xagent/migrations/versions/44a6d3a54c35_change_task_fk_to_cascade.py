@@ -8,8 +8,8 @@ Create Date: 2026-03-11 00:47:06.197244
 
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "44a6d3a54c35"
@@ -68,7 +68,10 @@ def upgrade() -> None:
         fks = inspector.get_foreign_keys("uploaded_files")
         fk_name = None
         for fk in fks:
-            if "task_id" in fk["constrained_columns"] and fk["referred_table"] == "tasks":
+            if (
+                "task_id" in fk["constrained_columns"]
+                and fk["referred_table"] == "tasks"
+            ):
                 fk_name = fk["name"]
                 break
 
@@ -132,7 +135,10 @@ def downgrade() -> None:
         fks = inspector.get_foreign_keys("uploaded_files")
         fk_name = None
         for fk in fks:
-            if "task_id" in fk["constrained_columns"] and fk["referred_table"] == "tasks":
+            if (
+                "task_id" in fk["constrained_columns"]
+                and fk["referred_table"] == "tasks"
+            ):
                 fk_name = fk["name"]
                 break
 
