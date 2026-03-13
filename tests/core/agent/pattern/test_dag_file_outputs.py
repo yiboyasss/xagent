@@ -16,7 +16,7 @@ def mock_workspace_db(mocker):
     """Mock database operations for workspace to avoid DB access in tests."""
 
     # Mock _create_file_record to do nothing (avoid DB access)
-    def mock_create_record(self, file_id, file_path):
+    def mock_create_record(self, file_id, file_path, db_session=None):
         # Store file_id in cache for retrieval
         path_str = str(file_path)
         resolved_str = str(file_path.resolve())
