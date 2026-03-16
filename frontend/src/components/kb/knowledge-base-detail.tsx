@@ -163,7 +163,7 @@ export function KnowledgeBaseDetailContent({ collectionName }: { collectionName:
     parse_method: "default",
     chunk_strategy: "recursive",
     chunk_size: 1000,
-    chunk_overlap: 201,
+    chunk_overlap: 200,
     separators: "",
     embedding_model_id: "",
     embedding_batch_size: 10,
