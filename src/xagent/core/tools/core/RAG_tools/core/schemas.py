@@ -1277,7 +1277,13 @@ class CollectionInfo(BaseModel):
     )
     skip_config_validation: bool = Field(
         default=False,
-        description="Skip collection configuration validation. Use with caution.",
+        description="Whether to skip configuration validation during ingestion. Use with caution.",
+    )
+
+    # 📝 Stored Ingestion Config
+    ingestion_config: Optional[IngestionConfig] = Field(
+        default=None,
+        description="Default ingestion configuration for the collection.",
     )
 
     # 🕒 Timestamps

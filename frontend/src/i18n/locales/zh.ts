@@ -1506,6 +1506,10 @@ Build when you need.`
         searchFailed: "搜索失败",
         partialSuccess: "部分成功: {message}",
         deleteFailedWithMessage: "删除失败: {message}",
+        saveConfigFailed: "保存配置失败",
+      },
+      success: {
+        configSaved: "配置保存成功",
       },
     },
   },

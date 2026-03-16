@@ -15,6 +15,7 @@ __all__ = [
     "ensure_main_pointers_table",
     "ensure_prompt_templates_table",
     "ensure_ingestion_runs_table",
+    "ensure_collection_config_table",
 ]
 
 
@@ -346,3 +347,24 @@ def ensure_ingestion_runs_table(conn: DBConnection) -> None:
             )
 
     _create_table(conn, "ingestion_runs", schema=schema)
+
+
+def ensure_collection_config_table(conn: DBConnection) -> None:
+    """Ensure the collection_config table exists with proper schema.
+
+    This table stores configuration/metadata for each collection.
+
+    Args:
+        conn: LanceDB connection
+    """
+    table_name = "collection_config"
+    schema = pa.schema(
+        [
+            pa.field("collection", pa.string()),
+            pa.field("config_json", pa.string()),  # Stores IngestionConfig as JSON
+            pa.field("updated_at", pa.timestamp("us")),
+            pa.field("user_id", pa.int64()),
+        ]
+    )
+
+    _create_table(conn, table_name, schema=schema)

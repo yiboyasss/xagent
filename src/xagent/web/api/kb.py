@@ -79,6 +79,61 @@ def _parse_separators(separators: Optional[str]) -> Optional[List[str]]:
 
 
 @kb_router.post(
+    "/collections/{collection}/config",
+    response_model=CollectionOperationResult,
+)
+async def save_collection_config(
+    collection: str,
+    config: IngestionConfig = Body(...),
+    _user: User = Depends(get_current_user),
+) -> CollectionOperationResult:
+    """Save ingestion configuration for a specific collection."""
+    from datetime import datetime, timezone
+
+    from ...core.tools.core.RAG_tools.LanceDB.schema_manager import (
+        ensure_collection_config_table,
+    )
+    from ...providers.vector_store.lancedb import get_connection_from_env
+
+    try:
+        conn = get_connection_from_env()
+        ensure_collection_config_table(conn)
+        table = conn.open_table("collection_config")
+
+        user_id_val = int(_user.id)
+        config_json = config.model_dump_json(exclude_unset=True)
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+
+        try:
+            # Try to delete existing configuration for this collection and user
+            table.delete(f"collection = '{collection}' AND user_id = {user_id_val}")
+        except Exception as e:
+            logger.warning(f"Error deleting old config: {e}")
+
+        # Insert new config
+        data = [
+            {
+                "collection": collection,
+                "config_json": config_json,
+                "updated_at": now,
+                "user_id": user_id_val,
+            }
+        ]
+
+        table.add(data)
+
+        return CollectionOperationResult(
+            status="success",
+            collection=collection,
+            operation="save_config",
+            message=f"Configuration saved for collection '{collection}'",
+        )
+    except Exception as e:
+        logger.error(f"Failed to save collection config: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@kb_router.post(
     "/ingest",
     response_model=IngestionResult,
 )

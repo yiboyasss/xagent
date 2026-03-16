@@ -32,6 +32,7 @@ from ..core.schemas import (
 from ..LanceDB.model_tag_utils import embeddings_table_name
 from ..LanceDB.schema_manager import (
     ensure_chunks_table,
+    ensure_collection_config_table,
     ensure_documents_table,
     ensure_ingestion_runs_table,
     ensure_parses_table,
@@ -528,6 +529,42 @@ def list_collections(
 
         collection_keys = sorted(stats.keys() | document_names.keys())
 
+        # Load configs for collections
+        collection_configs = {}
+        try:
+            ensure_collection_config_table(conn)
+            table = conn.open_table("collection_config")
+
+            # Apply user filter if needed
+            config_filter = UserPermissions.get_user_filter(user_id, is_admin)
+
+            if config_filter:
+                try:
+                    df = table.search().where(config_filter).to_pandas()
+                except Exception as e:
+                    logger.warning(f"Failed to apply filter to collection_config: {e}")
+                    df = table.to_pandas()
+            else:
+                df = table.to_pandas()
+
+            for _, row in df.iterrows():
+                col_name = row["collection"]
+                config_json = row.get("config_json")
+                if col_name and config_json:
+                    import json
+
+                    from ..core.schemas import IngestionConfig
+
+                    try:
+                        config_dict = json.loads(config_json)
+                        collection_configs[col_name] = IngestionConfig(**config_dict)
+                    except Exception as e:
+                        logger.warning(
+                            f"Failed to parse config for collection {col_name}: {e}"
+                        )
+        except Exception as e:
+            logger.warning(f"Could not load collection configs: {e}")
+
         collections = [
             CollectionInfo(
                 name=collection,
@@ -539,6 +576,7 @@ def list_collections(
                     "parses"
                 ],  # Use parses count as processed documents
                 document_names=sorted(document_names[collection]),
+                ingestion_config=collection_configs.get(collection),
             )
             for collection in collection_keys
         ]

@@ -25,6 +25,7 @@ interface CollectionInfo {
   embeddings: number
   parses: number
   document_names?: string[]
+  ingestion_config?: Partial<IngestionConfig>
 }
 
 interface IngestionConfig {
@@ -86,9 +87,6 @@ export function KnowledgeBaseDetailContent({ collectionName }: { collectionName:
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [ingestionResults, setIngestionResults] = useState<any[]>([])
-  const [newCollectionName, setNewCollectionName] = useState("")
-  const [newCollectionDescription, setNewCollectionDescription] = useState("")
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false)
   const [activeAddSourceMode, setActiveAddSourceMode] = useState<"web" | "file" | null>(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -155,7 +153,6 @@ export function KnowledgeBaseDetailContent({ collectionName }: { collectionName:
     timeout: 30,
     respect_robots_txt: true,
   })
-  const [uploadMethod, setUploadMethod] = useState<"file" | "web">("file")
 
   // Embedding models state
   const [embeddingModels, setEmbeddingModels] = useState<any[]>([])
@@ -166,13 +163,14 @@ export function KnowledgeBaseDetailContent({ collectionName }: { collectionName:
     parse_method: "default",
     chunk_strategy: "recursive",
     chunk_size: 1000,
-    chunk_overlap: 200,
+    chunk_overlap: 201,
     separators: "",
     embedding_model_id: "",
     embedding_batch_size: 10,
     max_retries: 3,
     retry_delay: 1.0,
   })
+  const [isSavingConfig, setIsSavingConfig] = useState(false)
 
   // Search states
   const [searchQuery, setSearchQuery] = useState("")
@@ -247,6 +245,14 @@ export function KnowledgeBaseDetailContent({ collectionName }: { collectionName:
       }
 
       setCollectionInfo(collection)
+
+      // Update ingestion config if saved in backend
+      if (collection.ingestion_config) {
+        setIngestionConfig(prev => ({
+          ...prev,
+          ...collection.ingestion_config
+        }))
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Unknown error")
     } finally {
@@ -561,6 +567,33 @@ export function KnowledgeBaseDetailContent({ collectionName }: { collectionName:
       toast.error(err instanceof Error ? err.message : t("kb.detail.edit.errors.updateFailed"))
     } finally {
       setIsUpdating(false)
+    }
+  }
+
+  const handleSaveConfig = async () => {
+    setIsSavingConfig(true)
+    try {
+      const response = await apiRequest(`${getApiUrl()}/api/kb/collections/${encodeURIComponent(collectionName)}/config`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(ingestionConfig)
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || t("kb.detail.errors.saveConfigFailed"))
+      }
+
+      toast.success(t("kb.detail.success.configSaved"))
+
+      // Refresh info to ensure we're in sync
+      await fetchCollectionInfo()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("kb.detail.errors.saveConfigFailed"))
+    } finally {
+      setIsSavingConfig(false)
     }
   }
 
@@ -930,7 +963,16 @@ export function KnowledgeBaseDetailContent({ collectionName }: { collectionName:
               </div>
 
               <div className="mt-6">
-                <Button>{t("kb.index.saveConfig")}</Button>
+                <Button onClick={handleSaveConfig} disabled={isSavingConfig}>
+                  {isSavingConfig ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {t("kb.index.savingConfig") || "Saving..."}
+                    </>
+                  ) : (
+                    t("kb.index.saveConfig")
+                  )}
+                </Button>
               </div>
             </div>
           </TabsContent>
