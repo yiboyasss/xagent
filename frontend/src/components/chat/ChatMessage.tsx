@@ -3,9 +3,11 @@ import { Bot, ChevronDown, ChevronUp, Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TraceEventRenderer } from "./TraceEventRenderer";
 import { useI18n } from "@/contexts/i18n-context";
+import { useApp } from "@/contexts/app-context-chat";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { Button } from "@/components/ui/button";
 import { normalizeTimestampMs } from "@/lib/time-utils";
+import { FileChip } from "./FileChip";
 
 interface ToolArgs {
   code?: string;
@@ -64,6 +66,34 @@ export interface ChatMessageProps {
   isVirtual?: boolean;
   taskStatus?: string;
   timestamp?: number | string;
+}
+
+function UserMessageContent({ content }: { content: string }) {
+  const { openFilePreview } = useApp();
+
+  if (!content) return null;
+  const parts = content.split(/`([^`]+)`/g);
+  return (
+    <p className={cn(
+      "text-sm leading-relaxed whitespace-pre-wrap break-words",
+      "max-h-60 overflow-y-auto py-[2px]"
+    )}>
+      {parts.map((part, index) => {
+        if (index % 2 === 1) {
+          const fileName = part.split('/').pop() || part;
+          return (
+            <FileChip
+              className="bg-[#F3F4F6]"
+              key={index}
+              path={part}
+              onClick={() => openFilePreview?.(part, fileName, [{ fileName, fileId: part }])}
+            />
+          );
+        }
+        return part;
+      })}
+    </p>
+  );
 }
 
 function GeneratingIndicator({latestTitle, taskStatus, errorMessage}: {latestTitle?: string, taskStatus?: string, errorMessage?: string}) {

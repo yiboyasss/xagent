@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
+import { createFileChipHTML } from "./FileChip";
 import { useRouter } from "next/navigation";
 import { Paperclip, X, File as FileIcon, Sparkles, Pause, Play, Loader2, ArrowUp, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, getApiUrl } from "@/lib/utils";
 import { useI18n } from "@/contexts/i18n-context";
+import { useApp } from "@/contexts/app-context-chat";
 import { ConfigDialog } from "@/components/config-dialog";
 import { apiRequest } from "@/lib/api-wrapper";
 import { toast } from "sonner";
@@ -75,7 +76,6 @@ export function ChatInput({
   const [fileList, setFileList] = useState<FileItem[]>([]);
   const [filteredFiles, setFilteredFiles] = useState<FileItem[]>([]);
   const [selectedFileIndex, setSelectedFileIndex] = useState(0);
-  const [triggerIndex, setTriggerIndex] = useState<number>(-1);
   const [currentQuery, setCurrentQuery] = useState("");
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
 
@@ -151,7 +151,6 @@ export function ChatInput({
         const query = textBefore.slice(lastAt + 1);
         // Basic check: no spaces/newlines in query (simple filenames)
         if (!query.includes(' ') && !query.includes('\n')) {
-          setTriggerIndex(lastAt); // Note: this index is relative to the text node, not full text!
           setCurrentQuery(query);
           // We need to adjust logic if we use this index elsewhere.
           // But insertFile uses relative logic now, so it's fine.
@@ -172,7 +171,6 @@ export function ChatInput({
     }
 
     setShowFilePicker(false);
-    setTriggerIndex(-1);
     setCurrentQuery("");
   };
 
@@ -188,11 +186,24 @@ export function ChatInput({
     }
   }, [fileList, showFilePicker, currentQuery]);
 
+  const moveCursorToEnd = () => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    const selection = window.getSelection();
+    const range = document.createRange();
+
+    range.selectNodeContents(editor);
+    range.collapse(false);
+
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+  };
+
   const insertFile = (file: FileItem) => {
     const filePath = file.relative_path || file.filename;
     const chipHTML = createFileChipHTML(filePath);
 
-    // Focus editor first
     editorRef.current?.focus();
 
     const selection = window.getSelection();
@@ -201,7 +212,6 @@ export function ChatInput({
     const range = selection.getRangeAt(0);
     const node = range.startContainer;
 
-    // Check if we are in a text node and can find the trigger
     if (node.nodeType === Node.TEXT_NODE && node.textContent) {
       const text = node.textContent;
       const cursor = range.startOffset;
@@ -209,58 +219,35 @@ export function ChatInput({
       const atIndex = textBefore.lastIndexOf('@');
 
       if (atIndex !== -1) {
-        // Select from @ to cursor
         range.setStart(node, atIndex);
         range.setEnd(node, cursor);
         selection.removeAllRanges();
         selection.addRange(range);
 
-        // Delete the @query text
         document.execCommand('delete');
 
-        // Insert the chip
         document.execCommand('insertHTML', false, chipHTML);
+
+        moveCursorToEnd();
       }
     } else {
-       // Fallback: just insert at cursor
-       document.execCommand('insertHTML', false, chipHTML);
+      document.execCommand('insertHTML', false, chipHTML);
+      moveCursorToEnd();
     }
 
     setShowFilePicker(false);
-    setTriggerIndex(-1);
     setCurrentQuery("");
 
-    // Update state manually
     handleInput();
   };
-
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const isSubmittingRef = useRef(false);
   const { t } = useI18n();
+  const { openFilePreview } = useApp();
 
-  const createFileChipHTML = (path: string) => {
-    const fileName = path.split('/').pop() || path;
-    const iconHtml = renderToStaticMarkup(<FileIcon className="w-3.5 h-3.5 text-primary" />);
-    const deleteIconHtml = renderToStaticMarkup(<X className="w-3.5 h-3.5 text-destructive cursor-pointer" />);
-
-    return `
-      <span contenteditable="false" data-file-path="${path}" class="inline-flex items-center gap-1.5 align-middle bg-secondary/80 border border-border/50 rounded-md px-1.5 py-0.2 text-sm select-none group cursor-default shadow-sm transition-all hover:bg-secondary hover:border-primary/30">
-        <span class="relative w-3.5 h-3.5 flex items-center justify-center">
-          <span class="absolute inset-0 flex items-center justify-center transition-opacity group-hover:opacity-0">
-            ${iconHtml}
-          </span>
-          <button type="button" class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity file-chip-delete">
-            ${deleteIconHtml}
-          </button>
-        </span>
-        <span class="text-[11px] font-medium text-foreground/70 truncate max-w-[200px]">${fileName}</span>
-      </span><span>&nbsp;</span>
-    `.trim();
-  };
-
-  // Handle click on delete button in chips
+  // Handle click on delete button and file chip preview
   useEffect(() => {
     const editor = editorRef.current;
     if (!editor) return;
@@ -277,6 +264,26 @@ export function ChatInput({
           // Trigger input event manually to update state
           const event = new Event('input', { bubbles: true });
           editor.dispatchEvent(event);
+        }
+        return;
+      }
+
+      // Handle file chip preview click
+      const chip = target.closest('.file-chip-preview');
+      if (chip) {
+        e.preventDefault();
+        e.stopPropagation();
+        const filePath = chip.getAttribute('data-file-path');
+        if (filePath) {
+          // If we have fileId mapped in our list, use it. Otherwise use the path as fileId fallback.
+          const fileInfo = fileList.find(f => f.relative_path === filePath || f.filename === filePath);
+          const fileName = fileInfo?.filename || filePath.split('/').pop() || filePath;
+
+          openFilePreview(
+            fileInfo?.workspace_id || filePath, // use workspace_id as fileId if available, fallback to path
+            fileName,
+            [{ fileName, fileId: fileInfo?.workspace_id || filePath }]
+          );
         }
       }
     };
