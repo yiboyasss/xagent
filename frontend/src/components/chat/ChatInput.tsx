@@ -21,12 +21,14 @@ import {
 } from "@/components/ui/alert-dialog";
 
 interface FileItem {
+  file_id: string;
   filename: string;
   file_size: number;
   modified_time: number;
   file_type?: string;
-  workspace_id?: string;
   relative_path?: string;
+  task_id?: number;
+  user_id?: number;
 }
 
 interface ChatInputProps {
@@ -93,12 +95,17 @@ export function ChatInput({
     const editor = editorRef.current;
     if (!editor) return;
 
-    // Serialize content: replace chips with backticked path
+    // Serialize content: replace chips with markdown link containing file:// scheme
     const clone = editor.cloneNode(true) as HTMLElement;
     const chips = clone.querySelectorAll('[data-file-path]');
     chips.forEach((chip) => {
       const path = chip.getAttribute('data-file-path');
-      chip.replaceWith(document.createTextNode(`\`${path}\``));
+      const fileId = chip.getAttribute('data-file-id');
+      const filename = chip.getAttribute('data-filename') || path?.split('/').pop() || path;
+
+      // Use fileId if available, otherwise path (fallback)
+      const id = fileId || path;
+      chip.replaceWith(document.createTextNode(`[${filename}](file://${id})`));
     });
 
     // Use innerText to preserve newlines
@@ -202,7 +209,9 @@ export function ChatInput({
 
   const insertFile = (file: FileItem) => {
     const filePath = file.relative_path || file.filename;
-    const chipHTML = createFileChipHTML(filePath);
+    const fileId = file.file_id || '';
+    const filename = file.filename;
+    const chipHTML = createFileChipHTML(filePath, fileId, filename);
 
     editorRef.current?.focus();
 
@@ -280,9 +289,9 @@ export function ChatInput({
           const fileName = fileInfo?.filename || filePath.split('/').pop() || filePath;
 
           openFilePreview(
-            fileInfo?.workspace_id || filePath, // use workspace_id as fileId if available, fallback to path
+            fileInfo?.file_id || filePath, // use file_id as fileId if available, fallback to path
             fileName,
-            [{ fileName, fileId: fileInfo?.workspace_id || filePath }]
+            [{ fileName, fileId: fileInfo?.file_id || filePath }]
           );
         }
       }
@@ -524,7 +533,13 @@ export function ChatInput({
         editor.innerHTML = "";
       }
     } else if (document.activeElement !== editor && editor.innerText.trim() === "") {
-      const html = message.replace(/`([^`]+)`/g, (match, path) => {
+      // Restore file:// links
+      let html = message.replace(/\[([^\]]+)\]\(file:\/\/([^)]+)\)/g, (match, filename, id) => {
+        // We use the ID as the path since we don't have the real path anymore
+        return createFileChipHTML(id, id, filename);
+      });
+      // Fallback for old backticked messages to not break existing chat history
+      html = html.replace(/`([^`]+)`/g, (match, path) => {
         return createFileChipHTML(path);
       });
       editor.innerHTML = html;
@@ -592,7 +607,7 @@ export function ChatInput({
                     onMouseDown={(e) => e.preventDefault()}
                   >
                     <FileIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <div className="flex flex-col overflow-hidden">
+                    <div className="flex flex-col items-start overflow-auto">
                       <span className="truncate font-medium">{file.filename}</span>
                       {file.relative_path && file.relative_path !== file.filename && (
                         <span className="truncate text-xs text-muted-foreground">{file.relative_path}</span>

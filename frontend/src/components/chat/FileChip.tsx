@@ -10,6 +10,7 @@ export const fileChipBaseClasses =
 
 interface FileChipProps {
   path: string;
+  filename?: string;
   className?: string;
   onDelete?: () => void;
   showDelete?: boolean;
@@ -20,8 +21,9 @@ interface FileChipProps {
  * React component for displaying a file chip.
  * Used in ChatMessage and other read-only views.
  */
-export function FileChip({ path, className, onDelete, showDelete = false, onClick }: FileChipProps) {
-  const fileName = path.split('/').pop() || path;
+export function FileChip({ path, filename, className, onDelete, showDelete = false, onClick }: FileChipProps) {
+  const displayFileName = filename || path.split('/').pop() || path;
+
 
   return (
     <span
@@ -30,7 +32,7 @@ export function FileChip({ path, className, onDelete, showDelete = false, onClic
     >
       <FileIcon className="w-3.5 h-3.5 text-primary" />
       <span className="text-[11px] font-medium text-foreground/70 truncate max-w-[200px]">
-        {fileName}
+        {displayFileName}
       </span>
       {showDelete && (
         <button
@@ -52,8 +54,8 @@ export function FileChip({ path, className, onDelete, showDelete = false, onClic
  * Generates HTML string for a file chip.
  * Used in contenteditable div in ChatInput.
  */
-export const createFileChipHTML = (path: string, className?: string) => {
-  const fileName = path.split('/').pop() || path;
+export const createFileChipHTML = (path: string, fileId?: string, filename?: string, className?: string) => {
+  const displayFileName = filename || path.split('/').pop() || path;
   const iconHtml = renderToStaticMarkup(<FileIcon className="w-3.5 h-3.5 text-primary" />);
   const deleteIconHtml = renderToStaticMarkup(<X className="w-3.5 h-3.5 text-destructive cursor-pointer" />);
 
@@ -62,7 +64,7 @@ export const createFileChipHTML = (path: string, className?: string) => {
   const containerClass = cn(fileChipBaseClasses, "relative top-[-2px] mr-2 cursor-pointer hover:bg-secondary/90 file-chip-preview", className);
 
   return `
-    <span contenteditable="false" data-file-path="${path}" class="${containerClass}">
+    <span contenteditable="false" data-file-path="${path}" data-file-id="${fileId || ''}" data-filename="${displayFileName}" class="${containerClass}">
       <span class="relative w-3.5 h-3.5 flex items-center justify-center">
         <span class="absolute inset-0 flex items-center justify-center transition-opacity group-hover:opacity-0">
           ${iconHtml}
@@ -71,7 +73,7 @@ export const createFileChipHTML = (path: string, className?: string) => {
           ${deleteIconHtml}
         </button>
       </span>
-      <span class="text-[11px] font-medium text-foreground/70 truncate max-w-[200px]">${fileName}</span>
+      <span class="text-[11px] font-medium text-foreground/70 truncate max-w-[200px]">${displayFileName}</span>
     </span>&#8203;
   `.trim();
 };

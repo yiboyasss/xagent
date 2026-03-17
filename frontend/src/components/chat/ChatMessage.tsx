@@ -72,26 +72,87 @@ function UserMessageContent({ content }: { content: string }) {
   const { openFilePreview } = useApp();
 
   if (!content) return null;
-  const parts = content.split(/`([^`]+)`/g);
+
+  // First handle the old backtick format to maintain backward compatibility
+  // Then handle the new Markdown file:// format
+  // We use a combined regex approach or split process
+
+  // Convert markdown links to a temporary placeholder for easier splitting
+  // [filename](file://fileId)
+  const markdownRegex = /\[([^\]]+)\]\(file:\/\/([^)]+)\)/g;
+  const backtickRegex = /`([^`]+)`/g;
+
+  // We'll parse the text into segments
+  const segments: React.ReactNode[] = [];
+  let lastIndex = 0;
+
+  // Helper to process text between markdown links for backticks
+  const processText = (text: string, startIndex: number) => {
+    let textLastIndex = 0;
+    let match;
+    const regex = new RegExp(backtickRegex);
+
+    while ((match = regex.exec(text)) !== null) {
+      // Add text before backtick
+      if (match.index > textLastIndex) {
+        segments.push(text.substring(textLastIndex, match.index));
+      }
+
+      // Add FileChip for backtick
+      const path = match[1];
+      const fileName = path.split('/').pop() || path;
+      segments.push(
+        <FileChip
+          className="bg-[#F3F4F6]"
+          key={`bt-${startIndex + match.index}`}
+          path={path}
+          onClick={() => openFilePreview?.(path, fileName, [{ fileName, fileId: path }])}
+        />
+      );
+
+      textLastIndex = regex.lastIndex;
+    }
+
+    // Add remaining text
+    if (textLastIndex < text.length) {
+      segments.push(text.substring(textLastIndex));
+    }
+  };
+
+  let match;
+  while ((match = markdownRegex.exec(content)) !== null) {
+    // Process text before the markdown link
+    if (match.index > lastIndex) {
+      processText(content.substring(lastIndex, match.index), lastIndex);
+    }
+
+    // Add FileChip for markdown link
+    const [_, filename, id] = match;
+
+    segments.push(
+      <FileChip
+        className="bg-[#F3F4F6]"
+        key={`md-${match.index}`}
+        path={id}
+        filename={filename}
+        onClick={() => openFilePreview?.(id, filename, [{ fileName: filename, fileId: id }])}
+      />
+    );
+
+    lastIndex = markdownRegex.lastIndex;
+  }
+
+  // Process remaining text
+  if (lastIndex < content.length) {
+    processText(content.substring(lastIndex), lastIndex);
+  }
+
   return (
     <p className={cn(
       "text-sm leading-relaxed whitespace-pre-wrap break-words",
       "max-h-60 overflow-y-auto py-[2px]"
     )}>
-      {parts.map((part, index) => {
-        if (index % 2 === 1) {
-          const fileName = part.split('/').pop() || part;
-          return (
-            <FileChip
-              className="bg-[#F3F4F6]"
-              key={index}
-              path={part}
-              onClick={() => openFilePreview?.(part, fileName, [{ fileName, fileId: part }])}
-            />
-          );
-        }
-        return part;
-      })}
+      {segments}
     </p>
   );
 }
