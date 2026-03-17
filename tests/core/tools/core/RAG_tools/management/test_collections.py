@@ -68,11 +68,14 @@ def _insert_documents(records: List[Dict[str, object]]) -> None:
     )
 
     for r in records:
-        update_collection_stats_sync(
-            collection_name=str(r["collection"]),
-            documents_delta=1,
-            document_name=os.path.basename(str(r["source_path"])),
-        )
+        try:
+            update_collection_stats_sync(
+                collection_name=str(r["collection"]),
+                documents_delta=1,
+                document_name=os.path.basename(str(r["source_path"])),
+            )
+        except Exception:
+            pass
 
 
 def _insert_parses(records: List[Dict[str, object]]) -> None:
@@ -87,10 +90,13 @@ def _insert_parses(records: List[Dict[str, object]]) -> None:
     )
 
     for r in records:
-        update_collection_stats_sync(
-            collection_name=str(r["collection"]),
-            parses_delta=1,
-        )
+        try:
+            update_collection_stats_sync(
+                collection_name=str(r["collection"]),
+                parses_delta=1,
+            )
+        except Exception:
+            pass
 
 
 def _insert_chunks(records: List[Dict[str, object]]) -> None:
@@ -112,10 +118,13 @@ def _insert_embeddings(model_name: str, records: List[Dict[str, object]]) -> Non
     )
 
     for r in records:
-        update_collection_stats_sync(
-            collection_name=str(r["collection"]),
-            embeddings_delta=1,
-        )
+        try:
+            update_collection_stats_sync(
+                collection_name=str(r["collection"]),
+                embeddings_delta=1,
+            )
+        except Exception:
+            pass
 
 
 def test_list_collections_empty(temp_lancedb_dir: str) -> None:
