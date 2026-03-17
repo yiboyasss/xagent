@@ -22,7 +22,6 @@ function TaskDetailContent() {
   const { state, sendMessage, setTaskId, openFilePreview, closeFilePreview, requestStatus, dispatch, pauseTask, resumeTask } = useApp();
   const { t } = useI18n();
   const [files, setFiles] = useState<File[]>([]);
-  const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const params = useParams();
   const router = useRouter();

@@ -733,7 +733,7 @@ interface AppContextType {
   setReplayPlaying: (isPlaying: boolean) => void
   setReplaySpeed: (speed: number) => void
   setReplayProgress: (progress: number) => void
-  setPendingMessage: React.Dispatch<React.SetStateAction<{ message: string; files?: File[] } | null>>
+  setPendingMessage: React.Dispatch<React.SetStateAction<{ message: string; files?: File[]; targetTaskId?: number } | null>>
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined)
@@ -743,17 +743,12 @@ const historicalDataRequestMap = new Map<number, boolean>()
 
 export function AppProvider({ children, token }: { children: React.ReactNode; token?: string }) {
   const [state, dispatch] = useReducer(appReducer, initialState)
-  const [pendingMessage, setPendingMessage] = useState<{ message: string; files?: File[] } | null>(null)
+  const [pendingMessage, setPendingMessage] = useState<{ message: string; files?: File[]; targetTaskId?: number } | null>(null)
   const { token: authToken } = useAuth() // Get auth token from context
   const { t } = useI18n()
   const router = useRouter()
   const pendingOptimisticMessageId = useRef<string | null>(null)
   const lastConnectedTaskId = useRef<number | null>(null)
-  const pendingMessageRef = useRef(pendingMessage)
-
-  useEffect(() => {
-    pendingMessageRef.current = pendingMessage
-  }, [pendingMessage])
 
   // Ref to track current state for WebSocket message handler
   const stateRef = useRef(state)
@@ -788,26 +783,6 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
     setTimeout(() => {
       dispatch({ type: "SET_HISTORY_LOADING", payload: false })
     }, 2000)
-
-    if (pendingMessageRef.current) {
-      console.log('📤 Sending pending message:', {
-        message: pendingMessageRef.current.message,
-        hasFiles: pendingMessageRef.current.files && pendingMessageRef.current.files.length > 0
-      })
-      // Use socketRef if available? No, use sendChatMessage from useWebSocket result?
-      // Wait, we can't use sendChatMessage here because it's defined inside useWebSocket hook result!
-      // We need to pass sendChatMessage to this callback?
-      // Or move this callback definition AFTER useWebSocket?
-      // But useWebSocket needs onConnect!
-      // Circular dependency!
-
-      // Solution: Use a ref for sendChatMessage?
-      // Or just handle pending message inside useWebSocket's onConnect?
-      // But we want to centralize logic.
-
-      // Let's defer pending message handling to a separate effect or keep it here if we can access sendChatMessage.
-      // We can't access sendChatMessage here.
-    }
 
     // Auto-execute PENDING tasks from Agent Builder
     setTimeout(() => {
@@ -853,9 +828,26 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
   // Handle pending messages separately since we need sendChatMessage
   useEffect(() => {
     if (isConnected && pendingMessage) {
+      // Ensure we are sending to the correct task
+      // If targetTaskId is set, it must match the current connected task
+      if (pendingMessage.targetTaskId) {
+        // We use lastConnectedTaskId.current because state.taskId might be updated before the socket is connected
+        // But sendChatMessage sends to the currently connected socket.
+        // We need to make sure the CURRENT socket corresponds to the targetTaskId.
+        // lastConnectedTaskId is updated in onConnect, so it reflects the current socket's task ID.
+        if (lastConnectedTaskId.current !== pendingMessage.targetTaskId) {
+          console.log('⏳ Pending message target task mismatch, waiting...', {
+            target: pendingMessage.targetTaskId,
+            current: lastConnectedTaskId.current
+          })
+          return
+        }
+      }
+
       console.log('📤 Sending pending message:', {
         message: pendingMessage.message,
-        hasFiles: pendingMessage.files && pendingMessage.files.length > 0
+        hasFiles: pendingMessage.files && pendingMessage.files.length > 0,
+        targetTaskId: pendingMessage.targetTaskId
       })
       sendChatMessage(pendingMessage.message, pendingMessage.files)
       setPendingMessage(null)
@@ -901,25 +893,6 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
       timestamp: new Date().toISOString()
     })
   }, [isConnected, state.taskId, connectionError])
-
-  // Debug taskId value
-  // useEffect(() => {
-  //   console.log('🎯 Debug taskId:', {
-  //     stateTaskId: state.taskId,
-  //     stateTaskIdType: typeof state.taskId,
-  //     stateTaskIdIsNull: state.taskId === null,
-  //     stateTaskIdIsUndefined: state.taskId === undefined,
-  //     finalTaskId: state.taskId !== null && state.taskId !== undefined ? state.taskId : undefined
-  //   })
-  // }, [state.taskId])
-
-  // Manually trigger connection when taskId is set
-  useEffect(() => {
-    if (state.taskId && !isConnected && !connectionError) {
-      console.log('🔧 Manually triggering WebSocket connection for task:', state.taskId)
-      connect()
-    }
-  }, [state.taskId, isConnected, connectionError, connect])
 
   const handleMessage = useCallback((message: WebSocketMessage, dispatch: React.Dispatch<AppAction>, currentState: AppState) => {
     // If we're in replay mode, don't process immediately - collect for delayed playback
@@ -2384,36 +2357,6 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
             }
           }
 
-          // AI Message Events
-          else if (eventType === "ai_message") {
-            const clarification = extractClarificationMessage(eventData)
-            const msgId = generateMessageId("msg-ai")
-            const content = clarification
-              ? <>
-                <MarkdownRenderer content={eventData.content || ""} />
-                <ClarificationForm
-                  interactions={clarification.interactions}
-                  timeout={clarification.timeout}
-                  expiresAt={clarification.expiresAt}
-                  messageId={msgId}
-                />
-              </>
-              : (eventData.content || "")
-
-            dispatch({
-              type: "ADD_MESSAGE",
-              payload: {
-                id: msgId,
-                role: "assistant",
-                content,
-                timestamp: message.timestamp,
-                status: "completed",
-                isResult: true,  // Mark as result message so it shows in task page
-                interactions: clarification?.interactions,
-              }
-            })
-          }
-
           // Visualization Events
           else if (eventType === "visualization_update") {
             dispatch({
@@ -2435,19 +2378,6 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
 
           // ReAct Pattern Events - these should be displayed in the right panel
           else if (eventType === "react_task_start" || eventType === "task_start_react") {
-            // ReAct pattern often doesn't emit user_message event, so we extract it from task data
-            const taskContent = eventData.task || eventData.description || ""
-            if (taskContent && !isDuplicateMessage(taskContent, 'user-message')) {
-               dispatch({
-                type: "ADD_MESSAGE",
-                payload: {
-                  id: generateMessageId("msg-user-react-start"),
-                  role: "user",
-                  content: taskContent,
-                  timestamp: message.timestamp,
-                }
-              })
-            }
 
             // Add to trace events for displaying execution logs
             const traceEvent: TraceEvent = {
@@ -3596,7 +3526,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
           })
 
           // Store the message to be sent after WebSocket connects
-          setPendingMessage({ message, files })
+          setPendingMessage({ message, files, targetTaskId: newTaskId })
 
           // Optimistically add the user message to the UI
           if (!isDuplicateMessage(message, 'user-message')) {

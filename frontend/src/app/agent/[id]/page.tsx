@@ -107,7 +107,11 @@ export default function AgentChatPage() {
         if (taskId) {
           dispatch({ type: "TRIGGER_TASK_UPDATE" })
           // Set pending message and files for WebSocket to send upon connection
-          setPendingMessage({ message: content, files: filesToSend })
+          setPendingMessage({
+            message: content,
+            files: filesToSend,
+            targetTaskId: typeof taskId === 'string' ? parseInt(taskId) : taskId
+          })
 
           // Use setTaskId to trigger context update and redirect
           setTaskId(typeof taskId === 'string' ? parseInt(taskId) : taskId)
