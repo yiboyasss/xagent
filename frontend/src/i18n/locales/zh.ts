@@ -50,8 +50,8 @@ const zh = {
   },
   chatPage: {
     page: {
-      emptyTitle: "描述目标，{appName} 会完成剩下的事",
-      emptyDescription: "将您的想法自动转化为可运作的智能体。只需描述您的需求，即可快速启动",
+      emptyTitle: "我可以帮您做些什么？",
+      emptyDescription: "描述您的目标，{appName} 会完成剩下的事。",
       startWith: "你可以从这里开始",
     },
     cards: {
@@ -79,6 +79,7 @@ const zh = {
     input: {
       placeholder: "描述您的任务...",
       hintEnter: "按 Enter 发送",
+      hintAt: "输入 @ 引用文件",
       processing: "处理中",
       actions: {
         config: "配置模型",

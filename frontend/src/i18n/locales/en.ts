@@ -50,8 +50,8 @@ const en = {
   },
   chatPage: {
     page: {
-      emptyTitle: "Describe the goal, {appName} will handle the rest",
-      emptyDescription: "Turn your ideas into working agents automatically. Just describe what you need to get started",
+      emptyTitle: "What can I help you with?",
+      emptyDescription: "Describe your goal and {appName} will handle the rest.",
       startWith: "You can start with",
     },
     cards: {
@@ -79,6 +79,7 @@ const en = {
     input: {
       placeholder: "Describe your task...",
       hintEnter: "Press Enter to send",
+      hintAt: "Input @ to reference files",
       processing: "Processing",
       actions: {
         config: "Configure Model",
