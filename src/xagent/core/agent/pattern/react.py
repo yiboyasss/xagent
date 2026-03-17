@@ -1142,8 +1142,8 @@ FILE REFERENCES:
 - You may see file references in the format: [filename](file://fileId)
 - The referenced file may NOT be in the current workspace.
 - The 'fileId' part is the only valid identifier for reading the file.
-- Do NOT infer or rely on any file_path from the link.
 - Use this fileId when referring to files in your analysis.
+- Example: If you see [data.csv](file://123), use '123' to read the file.
 
 You must respond with a structured action in the following JSON format:
 
@@ -1182,7 +1182,6 @@ FILE REFERENCES:
 - You may see file references in the format: [filename](file://fileId)
 - The referenced file may NOT be in the current workspace.
 - The 'fileId' part is the only valid identifier for reading the file.
-- Do NOT infer or rely on any file_path from the link.
 - When using tools to read files, pass the fileId directly.
 - Example: If you see [data.csv](file://123), use '123' to read the file.
 
@@ -1291,7 +1290,6 @@ FILE REFERENCES:
 - You may see file references in the format: [filename](file://fileId)
 - The referenced file may NOT be in the current workspace.
 - The 'fileId' part is the only valid identifier for reading the file.
-- Do NOT infer or rely on any file_path from the link.
 - When using tools to read files, pass the fileId directly.
 - Example: If you see [data.csv](file://123), use '123' to read the file.
 

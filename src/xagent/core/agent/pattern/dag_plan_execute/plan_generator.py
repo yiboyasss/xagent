@@ -1114,7 +1114,6 @@ When you return type="chat" (direct answer mode), you are providing a TEXT RESPO
             "- You may see file references in the format: [filename](file://fileId)\n"
             "- The referenced file may NOT be in the current workspace.\n"
             "- The 'fileId' part is the only valid identifier for reading the file.\n"
-            "- Do NOT infer or rely on any file_path from the link.\n"
             "- When using tools to read files, pass the fileId directly.\n"
             "- Example: If you see [data.csv](file://123), use '123' to read the file.\n\n"
             "CONDITIONAL BRANCHING:\n"
