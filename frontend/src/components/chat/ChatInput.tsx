@@ -8,7 +8,8 @@ import { useI18n } from "@/contexts/i18n-context";
 import { useApp } from "@/contexts/app-context-chat";
 import { ConfigDialog } from "@/components/config-dialog";
 import { apiRequest } from "@/lib/api-wrapper";
-import { toast } from "sonner";
+import { useFileMention, FileItem } from "@/hooks/use-file-mention";
+import { FileMentionDropdown } from "./FileMentionDropdown";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,17 +20,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-interface FileItem {
-  file_id: string;
-  filename: string;
-  file_size: number;
-  modified_time: number;
-  file_type?: string;
-  relative_path?: string;
-  task_id?: number;
-  user_id?: number;
-}
 
 interface ChatInputProps {
   onSend: (message: string, config?: any) => void | Promise<void>;
@@ -73,23 +63,12 @@ export function ChatInput({
   const [isFocused, setIsFocused] = useState(false);
   const [showNoModelAlert, setShowNoModelAlert] = useState(false);
 
-  // File picker state
-  const [showFilePicker, setShowFilePicker] = useState(false);
-  const [fileList, setFileList] = useState<FileItem[]>([]);
-  const [filteredFiles, setFilteredFiles] = useState<FileItem[]>([]);
-  const [selectedFileIndex, setSelectedFileIndex] = useState(0);
-  const [currentQuery, setCurrentQuery] = useState("");
-  const [isLoadingFiles, setIsLoadingFiles] = useState(false);
-
-  // Track files for async operations
-  const filesRef = useRef(files);
-  useEffect(() => {
-    filesRef.current = files;
-  }, [files]);
-
-  // Determine if controlled or uncontrolled
-  const isControlled = inputValue !== undefined;
-  const message = isControlled ? inputValue : internalMessage;
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isSubmittingRef = useRef(false);
+  const { t } = useI18n();
+  const { openFilePreview } = useApp();
 
   const handleInput = () => {
     const editor = editorRef.current;
@@ -119,142 +98,21 @@ export function ChatInput({
       setInternalMessage(text);
     }
 
-    checkTrigger();
+    fileMention.checkTrigger();
   };
 
-  const fetchFiles = async () => {
-    if (fileList.length > 0) return;
-    setIsLoadingFiles(true);
-    try {
-      const response = await apiRequest(`${getApiUrl()}/api/files/list`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data && data.files) {
-          setFileList(data.files);
-        }
-      }
-    } catch (error) {
-      console.error(t("files.previewDialog.errors.loadFailed"), error);
-      toast.error(t("files.previewDialog.errors.loadFailed"));
-    } finally {
-      setIsLoadingFiles(false);
-    }
-  };
+  const fileMention = useFileMention(editorRef, containerRef, handleInput, t);
 
-  const checkTrigger = () => {
-    const selection = window.getSelection();
-    if (!selection || !selection.rangeCount) return;
-
-    const range = selection.getRangeAt(0);
-    const node = range.startContainer;
-
-    if (node.nodeType === Node.TEXT_NODE && node.textContent) {
-      const text = node.textContent;
-      const cursor = range.startOffset;
-      const textBefore = text.slice(0, cursor);
-      const lastAt = textBefore.lastIndexOf('@');
-
-      if (lastAt !== -1) {
-        const query = textBefore.slice(lastAt + 1);
-        // Basic check: no spaces/newlines in query (simple filenames)
-        if (!query.includes(' ') && !query.includes('\n')) {
-          setCurrentQuery(query);
-          // We need to adjust logic if we use this index elsewhere.
-          // But insertFile uses relative logic now, so it's fine.
-
-          setShowFilePicker(true);
-          fetchFiles();
-
-          const lowerQuery = query.toLowerCase();
-          const filtered = fileList.filter(f =>
-            (f.filename.toLowerCase().includes(lowerQuery) ||
-             (f.relative_path && f.relative_path.toLowerCase().includes(lowerQuery)))
-          );
-          setFilteredFiles(filtered);
-          setSelectedFileIndex(0);
-          return;
-        }
-      }
-    }
-
-    setShowFilePicker(false);
-    setCurrentQuery("");
-  };
-
-  // Update filtered files when fileList changes (e.g. after fetch)
+  // Track files for async operations
+  const filesRef = useRef(files);
   useEffect(() => {
-    if (showFilePicker && fileList.length > 0) {
-       const lowerQuery = currentQuery.toLowerCase();
-       const filtered = fileList.filter(f =>
-          (f.filename.toLowerCase().includes(lowerQuery) ||
-           (f.relative_path && f.relative_path.toLowerCase().includes(lowerQuery)))
-        );
-        setFilteredFiles(filtered);
-    }
-  }, [fileList, showFilePicker, currentQuery]);
+    filesRef.current = files;
+  }, [files]);
 
-  const moveCursorToEnd = () => {
-    const editor = editorRef.current;
-    if (!editor) return;
+  // Determine if controlled or uncontrolled
+  const isControlled = inputValue !== undefined;
+  const message = isControlled ? inputValue : internalMessage;
 
-    const selection = window.getSelection();
-    const range = document.createRange();
-
-    range.selectNodeContents(editor);
-    range.collapse(false);
-
-    selection?.removeAllRanges();
-    selection?.addRange(range);
-  };
-
-  const insertFile = (file: FileItem) => {
-    const filePath = file.relative_path || file.filename;
-    const fileId = file.file_id || '';
-    const filename = file.filename;
-    const chipHTML = createFileChipHTML(filePath, fileId, filename);
-
-    editorRef.current?.focus();
-
-    const selection = window.getSelection();
-    if (!selection || !selection.rangeCount) return;
-
-    const range = selection.getRangeAt(0);
-    const node = range.startContainer;
-
-    if (node.nodeType === Node.TEXT_NODE && node.textContent) {
-      const text = node.textContent;
-      const cursor = range.startOffset;
-      const textBefore = text.slice(0, cursor);
-      const atIndex = textBefore.lastIndexOf('@');
-
-      if (atIndex !== -1) {
-        range.setStart(node, atIndex);
-        range.setEnd(node, cursor);
-        selection.removeAllRanges();
-        selection.addRange(range);
-
-        document.execCommand('delete');
-
-        document.execCommand('insertHTML', false, chipHTML);
-
-        moveCursorToEnd();
-      }
-    } else {
-      document.execCommand('insertHTML', false, chipHTML);
-      moveCursorToEnd();
-    }
-
-    setShowFilePicker(false);
-    setCurrentQuery("");
-
-    handleInput();
-  };
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const editorRef = useRef<HTMLDivElement>(null);
-  const isSubmittingRef = useRef(false);
-  const { t } = useI18n();
-  const { openFilePreview } = useApp();
 
   // Handle click on delete button and file chip preview
   useEffect(() => {
@@ -285,7 +143,7 @@ export function ChatInput({
         const filePath = chip.getAttribute('data-file-path');
         if (filePath) {
           // If we have fileId mapped in our list, use it. Otherwise use the path as fileId fallback.
-          const fileInfo = fileList.find(f => f.relative_path === filePath || f.filename === filePath);
+          const fileInfo = fileMention.fileList.find((f: FileItem) => f.relative_path === filePath || f.filename === filePath);
           const fileName = fileInfo?.filename || filePath.split('/').pop() || filePath;
 
           openFilePreview(
@@ -299,7 +157,7 @@ export function ChatInput({
 
     editor.addEventListener('click', handleClick);
     return () => editor.removeEventListener('click', handleClick);
-  }, []);
+  }, [fileMention.fileList, openFilePreview]);
   const [agentConfig, setAgentConfig] = useState<{
     model: string;
     smallFastModel?: string;
@@ -431,29 +289,8 @@ export function ChatInput({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (showFilePicker) {
-      if (e.key === "ArrowUp") {
-        e.preventDefault();
-        setSelectedFileIndex(prev => Math.max(0, prev - 1));
-        return;
-      }
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        setSelectedFileIndex(prev => Math.min(filteredFiles.length - 1, prev + 1));
-        return;
-      }
-      if (e.key === "Enter" || e.key === "Tab") {
-        e.preventDefault();
-        if (filteredFiles.length > 0) {
-          insertFile(filteredFiles[selectedFileIndex]);
-        }
-        return;
-      }
-      if (e.key === "Escape") {
-        e.preventDefault();
-        setShowFilePicker(false);
-        return;
-      }
+    if (fileMention.handleKeyDown(e)) {
+      return;
     }
 
     if (e.key === "Enter" && !e.shiftKey) {
@@ -582,43 +419,16 @@ export function ChatInput({
       )}
 
       {/* Input area */}
-      <div className="relative">
-        {showFilePicker && (
-          <div className="absolute bottom-full left-0 mb-2 w-full max-w-sm rounded-lg border bg-popover shadow-md z-50 overflow-hidden">
-            {isLoadingFiles ? (
-              <div className="p-4 flex items-center justify-center text-sm text-muted-foreground">
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {t("common.loading")}
-              </div>
-            ) : filteredFiles.length === 0 ? (
-              <div className="p-4 text-sm text-muted-foreground text-center">
-                {t("files.table.empty.noMatch")}
-              </div>
-            ) : (
-              <div className="max-h-[200px] overflow-y-auto p-1">
-                {filteredFiles.map((file, index) => (
-                  <div
-                    key={index}
-                    className={cn(
-                      "flex items-center gap-2 px-3 py-2 text-sm rounded-md cursor-pointer transition-colors overflow-scroll",
-                      index === selectedFileIndex ? "bg-accent text-accent-foreground" : "hover:bg-muted"
-                    )}
-                    onClick={() => insertFile(file)}
-                    onMouseDown={(e) => e.preventDefault()}
-                  >
-                    <FileIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <div className="flex flex-col items-start overflow-auto">
-                      <span className="truncate font-medium">{file.filename}</span>
-                      {file.relative_path && file.relative_path !== file.filename && (
-                        <span className="truncate text-xs text-muted-foreground">{file.relative_path}</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+      <div className="relative" ref={containerRef}>
+        <FileMentionDropdown
+          show={fileMention.showFilePicker}
+          isLoading={fileMention.isLoadingFiles}
+          filteredFiles={fileMention.filteredFiles}
+          selectedFileIndex={fileMention.selectedFileIndex}
+          onInsert={fileMention.insertFile}
+          t={t}
+          position={fileMention.dropdownPosition}
+        />
         <form
           onSubmit={handleSubmit}
         className={cn(
