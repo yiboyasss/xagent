@@ -1349,6 +1349,12 @@ class CollectionInfo(BaseModel):
         data["extra_metadata"] = json.dumps(data["extra_metadata"])
         data["document_names"] = json.dumps(data["document_names"])
 
+        # Serialize ingestion_config if present
+        if data.get("ingestion_config"):
+            data["ingestion_config"] = json.dumps(data["ingestion_config"])
+        else:
+            data["ingestion_config"] = None
+
         return data
 
 
