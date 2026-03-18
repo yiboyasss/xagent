@@ -435,7 +435,7 @@ function TaskDetailContent() {
                 smallFastModel: state.currentTask.smallFastModelName,
                 visualModel: state.currentTask.visualModelName
               } : undefined}
-              readOnlyConfig={!!state.currentTask?.agentId}
+              readOnlyConfig={true}
             />
           </div>
         </div>

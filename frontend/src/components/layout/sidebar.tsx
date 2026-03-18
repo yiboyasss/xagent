@@ -663,7 +663,7 @@ export function Sidebar({ className }: SidebarProps) {
                         <span className="truncate flex-1 text-left">{task.title || "Untitled Task"}</span>
                         <button
                           onClick={(e) => deleteTask(task.task_id, e)}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 text-muted-foreground hover:text-red-500 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 z-10"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 text-muted-foreground hover:text-red-500 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700"
                           title={t('common.delete')}
                         >
                           <Trash2 className="h-3.5 w-3.5" />

@@ -139,7 +139,13 @@ export function TaskFileManager({ taskId, children, onPreview }: TaskFileManager
       <PopoverTrigger asChild>
         {children}
       </PopoverTrigger>
-      <PopoverContent className="w-[400px] p-0" align="start">
+      <PopoverContent
+        className="w-[400px] p-0"
+        align="start"
+        onInteractOutside={(e) => {
+          e.preventDefault();
+        }}
+      >
         <div className="flex items-center justify-between p-3 border-b bg-muted/20">
           <h3 className="font-medium text-sm flex items-center gap-2">
             {t('files.header.title')}
