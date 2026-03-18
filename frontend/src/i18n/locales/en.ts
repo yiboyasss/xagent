@@ -60,24 +60,24 @@ const en = {
     },
     cards: {
       createPPT: {
-        title: "Create PPT",
+        title: "Generate a PPT from a report",
         description: "Sales reports, slides",
-        prompt: "Create a PPT for Q3 E-commerce sales analysis"
+        prompt: "Generate a PPT from a report"
       },
       dataAnalysis: {
-        title: "Data Analysis",
+        title: "Analyze a dataset",
         description: "Trends, feedback",
-        prompt: "Analyze customer feedback data and summarize trends"
+        prompt: "Analyze a dataset"
       },
       designPoster: {
-        title: "Design Poster",
+        title: "Design a marketing poster",
         description: "Social media assets",
-        prompt: "Design a poster for the upcoming tech conference"
+        prompt: "Design a marketing poster"
       },
       automatic: {
-        title: "Automatic",
+        title: "Automate a workflow",
         description: "Custom workflows",
-        prompt: "Build an automatic email processing workflow"
+        prompt: "Automate a workflow"
       }
     },
     input: {

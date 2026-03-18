@@ -60,24 +60,24 @@ const zh = {
     },
     cards: {
       createPPT: {
-        title: "制作 PPT",
+        title: "根据报告生成一个 PPT",
         description: "销售报告，幻灯片",
-        prompt: "为 Q3 电商销售分析制作 PPT"
+        prompt: "根据报告生成一个 PPT"
       },
       dataAnalysis: {
-        title: "数据分析",
+        title: "分析数据集",
         description: "趋势，反馈",
-        prompt: "分析客户反馈数据并总结趋势"
+        prompt: "分析数据集"
       },
       designPoster: {
-        title: "设计海报",
+        title: "设计一张营销海报",
         description: "社交媒体素材",
-        prompt: "为即将到来的技术会议设计海报"
+        prompt: "设计一张营销海报"
       },
       automatic: {
-        title: "自动化",
+        title: "自动化一个工作流程",
         description: "自定义工作流",
-        prompt: "构建一个自动邮件处理工作流"
+        prompt: "自动化一个工作流程"
       }
     },
     input: {
