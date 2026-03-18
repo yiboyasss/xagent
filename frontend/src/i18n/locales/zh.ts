@@ -20,6 +20,8 @@ const zh = {
     code: "代码",
     preview: "预览",
     refresh: "刷新",
+    expand: "展开",
+    collapse: "收起",
     errors: {
       unknown: "未知错误",
     },

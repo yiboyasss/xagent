@@ -158,6 +158,7 @@ function TaskDetailContent() {
     id: string;
     role: "user" | "assistant";
     content: string | React.ReactNode;
+    rawContent?: string;
     timestamp: number;
     traceEvents?: any[];
   };
@@ -187,6 +188,7 @@ function TaskDetailContent() {
         id: m.id || `${m.role}-${toTime(m.timestamp)}`,
         role: m.role,
         content: m.content,
+        rawContent: m.rawContent,
         timestamp: toTime(m.timestamp),
         traceEvents: m.traceEvents,
       }));
@@ -368,8 +370,10 @@ function TaskDetailContent() {
                       key={item.id}
                       role={item.role}
                       content={item.content}
+                      rawContent={item.rawContent}
                       traceEvents={item.traceEvents as any || []}
                       showProcessView={true}
+                      timestamp={item.timestamp}
                     />
                   ))}
 

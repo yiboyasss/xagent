@@ -15,6 +15,7 @@ import { useApp } from '@/contexts/app-context-chat';
 import { useI18n } from '@/contexts/i18n-context';
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { normalizeTimestampMs } from '@/lib/time-utils';
 
 // Types
 interface ToolArgs {
@@ -150,7 +151,7 @@ function useProcessedSteps(events: TraceEvent[]): ProcessedStep[] {
       }
 
       const step = stepsMap.get(stepId)!;
-      const timestamp = event.timestamp || Date.now();
+      const timestamp = normalizeTimestampMs(event.timestamp);
       const eventId = event.event_id || `event-${index}`;
 
       // Process different event types
@@ -473,7 +474,13 @@ function StepActionItem({ action, onViewDetail, onOpenTerminal, onFileClick }: S
         </span>
         <div className="flex items-center gap-2 flex-shrink-0">
             <span className="text-[10px] opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground/50">
-                {new Date(action.timestamp).toLocaleTimeString()}
+                {new Date(action.timestamp).toLocaleString([], {
+                    month: 'numeric',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                })}
             </span>
             {isExpanded ? <ChevronDown className="w-3 h-3 opacity-50" /> : <ChevronRight className="w-3 h-3 opacity-50" />}
         </div>

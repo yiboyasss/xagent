@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Send, Paperclip, X, File as FileIcon, Sparkles, Pause, Play, Loader2, Bot, Target, Image as ImageIcon, Briefcase, FileText, LayoutTemplate, ArrowUp, Globe } from "lucide-react";
+import { Paperclip, X, File as FileIcon, Sparkles, Pause, Play, Loader2, ArrowUp, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn, getApiUrl } from "@/lib/utils";
@@ -550,7 +550,7 @@ export function ChatInput({
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           placeholder={t("chatPage.input.placeholder")}
-          className="min-h-[130px] max-h-[300px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 pb-14 text-[15px] placeholder:text-muted-foreground/60"
+          className="min-h-[130px] max-h-[300px] resize-none border-0 bg-transparent dark:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 pb-14 text-[15px] placeholder:text-muted-foreground/60"
           disabled={isLoading || !!downloadingFile}
         />
 
@@ -645,7 +645,7 @@ export function ChatInput({
                 disabled={!canSubmit()}
                 className={cn(
                   "h-8 w-8 rounded-lg transition-all duration-300",
-                  canSubmit() ? "bg-muted-foreground/20 hover:bg-muted-foreground/30 text-foreground" : "bg-muted text-muted-foreground/50"
+                  !canSubmit() && "bg-muted text-muted-foreground/50"
                 )}
               >
                 {isLoading ? (

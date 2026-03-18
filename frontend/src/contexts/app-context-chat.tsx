@@ -37,6 +37,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { getApiUrl } from "@/lib/utils"
 import { apiRequest } from "@/lib/api-wrapper"
 import { useI18n } from "@/contexts/i18n-context"
+import { normalizeTimestampMs } from "@/lib/time-utils"
 
 // Unique ID generator for messages
 let messageIdCounter = 0
@@ -223,6 +224,7 @@ interface Message {
   id: string
   role: "user" | "assistant"
   content: string | React.ReactNode
+  rawContent?: string
   timestamp: string
   status?: "pending" | "running" | "completed" | "failed"
   isResult?: boolean
@@ -434,9 +436,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
 
       const updatedMessages = [...state.messages, messageToAdd]
       updatedMessages.sort((a, b) => {
-        const timeA = typeof a.timestamp === 'number' ? a.timestamp : new Date(a.timestamp).getTime()
-        const timeB = typeof b.timestamp === 'number' ? b.timestamp : new Date(b.timestamp).getTime()
-        return timeA - timeB
+        return normalizeTimestampMs(a.timestamp) - normalizeTimestampMs(b.timestamp)
       })
       return { ...state, messages: updatedMessages, traceEvents: newTraceEvents }
     }
@@ -2258,6 +2258,7 @@ export function AppProvider({ children, token }: { children: React.ReactNode; to
                     id: generateMessageId("msg-task-result"),
                     role: "assistant",
                     content: resultContent,
+                    rawContent: typeof finalOutput === 'string' ? finalOutput : JSON.stringify(finalOutput, null, 2),
                     timestamp: message.timestamp,
                     status: success ? "completed" : "failed",
                     isResult: true,

@@ -152,7 +152,8 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
   useEffect(() => {
     setMessages([{
       role: "assistant",
-      content: t("builds.preview.initialMessage")
+      content: t("builds.preview.initialMessage"),
+      timestamp: Date.now()
     }])
   }, [t])
 
@@ -252,7 +253,8 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
               setIsChatLoading(false)
               setMessages(prev => [...prev, {
                 role: "assistant",
-                content: `Error: ${message.error}`
+                content: `Error: ${message.error}`,
+                timestamp: Date.now()
               }])
             }
           } catch (error) {
@@ -605,7 +607,8 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
       if (!modelConfig.general) {
         setMessages(prev => [...prev, {
           role: "assistant",
-          content: t("builds.preview.errors.noModel")
+          content: t("builds.preview.errors.noModel"),
+          timestamp: Date.now()
         }])
         setIsChatLoading(false)
         return
@@ -615,7 +618,8 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
       if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
         setMessages(prev => [...prev, {
           role: "assistant",
-          content: "⚠️ WebSocket not connected. The system is attempting to reconnect. Please wait a moment and try again."
+          content: "⚠️ WebSocket not connected. The system is attempting to reconnect. Please wait a moment and try again.",
+          timestamp: Date.now()
         }])
         setIsChatLoading(false)
         return
@@ -658,7 +662,8 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
       console.error("Preview failed:", error)
       setMessages(prev => [...prev, {
         role: "assistant",
-        content: t("builds.preview.errors.requestFailed")
+        content: t("builds.preview.errors.requestFailed"),
+        timestamp: Date.now()
       }])
       setIsChatLoading(false)
     }
@@ -1349,6 +1354,7 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
                 content={msg.content}
                 traceEvents={msg.traceEvents}
                 showProcessView={true}
+                timestamp={msg.timestamp}
               />
             ))}
             <div ref={messagesEndRef} />

@@ -20,6 +20,8 @@ const en = {
     code: "Code",
     preview: "Preview",
     refresh: "Refresh",
+    expand: "Expand",
+    collapse: "Collapse",
     errors: {
       unknown: "Unknown error",
     },
