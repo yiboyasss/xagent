@@ -14,7 +14,7 @@ import { getApiUrl, getWsUrl } from "@/lib/utils"
 import { PlusCircle, MessageSquare, Upload, Download, Settings2, Check, Zap, BookOpen, ChevronLeft, Sparkles, Loader2 } from "lucide-react"
 import { useI18n } from "@/contexts/i18n-context"
 import { useAuth } from "@/contexts/auth-context"
-import { FileAttachment } from "@/components/file-attachment"
+import { FileAttachment } from "@/components/file/file-attachment"
 import { MultiSelect } from "@/components/ui/multi-select"
 import { Select } from "@/components/ui/select"
 import {

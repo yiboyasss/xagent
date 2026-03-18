@@ -17,6 +17,8 @@ const en = {
     planning: "Formulating Plan",
     taskPaused: "Task Paused",
     noData: "No Data",
+    code: "Code",
+    preview: "Preview",
     refresh: "Refresh",
     errors: {
       unknown: "Unknown error",

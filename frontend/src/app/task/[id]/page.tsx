@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, Suspense, useCallback, useMemo } from "react";
-import { GitMerge, Bot, Download, ArrowLeft, Loader2, Sparkles, FolderOpen } from "lucide-react";
+import { GitMerge, Bot, ArrowLeft, Loader2, Sparkles, FolderOpen } from "lucide-react";
 import { ChatMessage } from "@/components/chat/ChatMessage";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { Button } from "@/components/ui/button";
@@ -9,14 +9,15 @@ import { useApp } from "@/contexts/app-context-chat";
 import { useI18n } from "@/contexts/i18n-context";
 import { useParams, useRouter } from "next/navigation"
 import { PreviewSheet } from "@/components/preview-sheet";
-import { FilePreviewContent } from "@/components/file-preview-content";
+import { FilePreviewContent } from "@/components/file/file-preview-content";
 import { TokenUsageDisplay } from "@/components/chat/TokenUsageDisplay";
-import { TaskFileManager } from "@/components/task-file-manager";
+import { TaskFileManager } from "@/components/file/task-file-manager";
 import { getApiUrl } from "@/lib/utils";
 import { apiRequest } from "@/lib/api-wrapper";
 import type React from "react";
 import dagre from "dagre"
 import { CenterPanel } from "@/components/layout/center-panel"
+import { FilePreviewActionButtons } from "@/components/file/file-preview-action-buttons"
 
 function TaskDetailContent() {
   const { state, sendMessage, setTaskId, openFilePreview, closeFilePreview, requestStatus, dispatch, pauseTask, resumeTask } = useApp();
@@ -115,6 +116,13 @@ function TaskDetailContent() {
       window.removeEventListener('openFilePreview', handleFilePreviewEvent as EventListener);
     };
   }, [openFilePreview]);
+
+  // Close file preview when leaving the task page
+  useEffect(() => {
+    return () => {
+      closeFilePreview();
+    };
+  }, [closeFilePreview]);
 
   const handleDownload = async () => {
     try {
@@ -471,15 +479,13 @@ function TaskDetailContent() {
               t("chatPage.executionPlan.title")
             }
             actions={state.filePreview.isOpen ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDownload}
-                className="h-8 w-8 p-0"
-                title={t("files.previewDialog.buttons.download")}
-              >
-                <Download className="h-4 w-4" />
-              </Button>
+              <FilePreviewActionButtons
+                viewMode={state.filePreview.viewMode}
+                onViewModeChange={(mode) => dispatch({ type: 'SET_FILE_PREVIEW_MODE', payload: mode })}
+                fileName={state.filePreview.fileName || ''}
+                onDownload={handleDownload}
+                showText={true}
+              />
             ) : null}
           >
             <div className="w-full h-full">

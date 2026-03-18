@@ -17,6 +17,8 @@ const zh = {
     planning: "正在制定计划",
     taskPaused: "任务已暂停",
     noData: "暂无数据",
+    code: "代码",
+    preview: "预览",
     refresh: "刷新",
     errors: {
       unknown: "未知错误",
