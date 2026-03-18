@@ -265,8 +265,8 @@ export function Sidebar({ className }: SidebarProps) {
 
   // Get currently selected task ID (parsed from path, supports /task/[id] format)
   const getCurrentTaskId = useCallback(() => {
-    // Match /task/[number] pattern
-    const match = pathname.match(/^\/task\/(\d+)\/?$/);
+    // Match /task/[id] pattern
+    const match = pathname.match(/^\/task\/([^/]+)\/?$/);
     if (match) {
       return match[1];
     }
@@ -274,6 +274,8 @@ export function Sidebar({ className }: SidebarProps) {
   }, [pathname])
 
   const [tasks, setTasks] = useState<Task[]>([])
+  const [unreadTasks, setUnreadTasks] = useState<Set<string>>(new Set())
+  const taskStatusRef = useRef<Map<string, string>>(new Map())
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null)
   const [isLoadingTasks, setIsLoadingTasks] = useState(false)
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(true)
@@ -281,7 +283,12 @@ export function Sidebar({ className }: SidebarProps) {
   const [hasMore, setHasMore] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const navRef = useRef<HTMLElement | null>(null)
+  const pathnameRef = useRef(pathname)
   const displayVersion = versionInfo?.display_version || "unknown"
+
+  useEffect(() => {
+    pathnameRef.current = pathname
+  }, [pathname])
 
   useEffect(() => {
     let isCancelled = false
@@ -369,10 +376,10 @@ export function Sidebar({ className }: SidebarProps) {
   }, [githubRepoDisplay, isAboutOpen])
 
   // Load task list
-  const loadTasks = useCallback(async (pageNum = 1, isAppending = false) => {
+  const loadTasks = useCallback(async (pageNum = 1, isAppending = false, isPolling = false) => {
     if (isAppending) {
       setIsLoadingMore(true)
-    } else {
+    } else if (!isPolling) {
       setIsLoadingTasks(true)
     }
 
@@ -382,6 +389,32 @@ export function Sidebar({ className }: SidebarProps) {
         const data = await response.json()
         // Handle new API response format {tasks: [...], pagination: {...}}
         const newTasks = data.tasks || (Array.isArray(data) ? data : [])
+
+        // Update task status ref and check for unread completed tasks
+        const currentUnreadUpdates = new Set<string>()
+        const match = pathnameRef.current.match(/^\/task\/([^/]+)\/?$/)
+        const currentTaskId = match ? match[1] : null
+
+        newTasks.forEach((task: Task) => {
+          const stringTaskId = String(task.task_id)
+          const prevStatus = taskStatusRef.current.get(stringTaskId)
+          // If task completed and wasn't completed before (and we have a previous record)
+          if (task.status === 'completed' && prevStatus && prevStatus !== 'completed') {
+            // Only mark as unread if we are not currently on this task page
+            if (String(currentTaskId) !== stringTaskId) {
+              currentUnreadUpdates.add(stringTaskId)
+            }
+          }
+          taskStatusRef.current.set(stringTaskId, task.status)
+        })
+
+        if (currentUnreadUpdates.size > 0) {
+          setUnreadTasks(prev => {
+            const next = new Set(prev)
+            currentUnreadUpdates.forEach(id => next.add(id))
+            return next
+          })
+        }
 
         if (isAppending) {
           setTasks(prev => [...prev, ...newTasks])
@@ -401,6 +434,38 @@ export function Sidebar({ className }: SidebarProps) {
       setIsLoadingMore(false)
     }
   }, [])
+
+  // Poll for task updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Only poll if window is visible and not already loading
+      if (document.visibilityState === 'visible' && !isLoadingTasks && !isLoadingMore) {
+        loadTasks(1, false, true)
+      }
+    }, 30000) // Poll every 30 seconds
+
+    return () => clearInterval(interval)
+  }, [loadTasks, isLoadingTasks, isLoadingMore])
+
+  // Clear unread status when entering a task page
+  useEffect(() => {
+    const currentTaskId = getCurrentTaskId()
+    if (currentTaskId) {
+      setUnreadTasks(prev => {
+        // Use string comparison to ensure type safety (API might return number)
+        const hasTask = Array.from(prev).some(id => String(id) === String(currentTaskId))
+        if (!hasTask) return prev
+
+        const next = new Set<string>()
+        prev.forEach(id => {
+          if (String(id) !== String(currentTaskId)) {
+            next.add(String(id))
+          }
+        })
+        return next
+      })
+    }
+  }, [pathname, getCurrentTaskId])
 
   // Monitor task list changes, if content is not enough to fill the container and there is more data, automatically load the next page
   useEffect(() => {
@@ -661,6 +726,9 @@ export function Sidebar({ className }: SidebarProps) {
                           </div>
                         </div>
                         <span className="truncate flex-1 text-left">{task.title || "Untitled Task"}</span>
+                        {unreadTasks.has(String(task.task_id)) && (
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-blue-500 group-hover:opacity-0 transition-opacity" />
+                        )}
                         <button
                           onClick={(e) => deleteTask(task.task_id, e)}
                           className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 text-muted-foreground hover:text-red-500 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700"
