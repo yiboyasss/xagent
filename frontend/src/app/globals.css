@@ -3,9 +3,9 @@
 @tailwind components;
 @tailwind utilities;
 
-/* XAgent 主题系统 - 支持动态主题切换 */
+/* XAgent Theme System - Supports dynamic theme switching */
 :root {
-  /* 默认深色主题配色 - 保持向后兼容 */
+  /* Default dark theme colors - Maintains backward compatibility */
   --background: 222.2 84% 4.9%;
   --foreground: 210 40% 98%;
   --card: 222.2 84% 4.9%;
@@ -38,7 +38,7 @@
   }
 }
 
-/* 主题覆盖规则 - 确保硬编码颜色被主题变量替换 */
+/* Theme override rules - Ensures hardcoded colors are replaced by theme variables */
 body .bg-\[\#0E1117\] {
   background-color: hsl(var(--background)) !important;
 }
@@ -71,7 +71,7 @@ body .hover\:text-\[\#E6EDF3\]:hover {
   color: hsl(var(--accent-foreground)) !important;
 }
 
-/* 覆盖所有可能的硬编码颜色组合 */
+/* Override all possible hardcoded color combinations */
 body [class*="bg-["][class*="#"] {
   background-color: hsl(var(--background)) !important;
 }
@@ -84,15 +84,16 @@ body [class*="border-["][class*="#"] {
   border-color: hsl(var(--border)) !important;
 }
 
-/* 保留特定的交互效果 */
-body .hover\\:bg-\\[\\#1F2937\\]:hover {
+/* Preserve specific interaction effects */
+body .hover\:\bg-\[\#1F2937\]:hover {
   background-color: hsl(var(--accent)) !important;
 }
 
-body .hover\\:text-\\[\\#E6EDF3\\]:hover {
+body .hover\:\text-\[\#E6EDF3\]:hover {
   color: hsl(var(--accent-foreground)) !important;
 }
-/* React Flow 节点背景透明 */
+
+/* React Flow node background transparent */
 .react-flow__node {
   background-color: transparent !important;
   border: none !important;
@@ -240,13 +241,13 @@ body .hover\\:text-\\[\\#E6EDF3\\]:hover {
   background-color: hsl(var(--muted) / 0.5);
 }
 
-/* React Flow Minimap SVG 半透明背景 */
+/* React Flow Minimap SVG semi-transparent background */
 .react-flow__minimap-svg {
   background-color: hsl(var(--background) / 0.8) !important;
   backdrop-filter: blur(8px);
 }
 
-/* React Flow 控制按钮半透明背景 */
+/* React Flow control button semi-transparent background */
 .react-flow__controls-button {
   background-color: hsl(var(--background) / 0.9) !important;
   backdrop-filter: blur(8px);
@@ -258,27 +259,27 @@ body .hover\\:text-\\[\\#E6EDF3\\]:hover {
   background-color: hsl(var(--background)) !important;
 }
 
-/* 隐藏 React Flow 署名 */
+/* Hide React Flow attribution */
 .react-flow__attribution {
   display: none !important;
 }
 
-/* 覆盖 React Flow 节点选中时的默认样式，防止出现距离感 */
+/* Override default React Flow node selected styles to prevent distance effect */
 .react-flow__node.selected {
   box-shadow: none !important;
 }
 
-/* 覆盖 React Flow 节点 hover 时的默认阴影，防止与自定义样式冲突 */
+/* Override default React Flow node hover shadows to prevent conflict with custom styles */
 .react-flow__node:hover {
   box-shadow: none !important;
 }
 
-/* 确保滚动区域正常工作 */
+/* Ensure scroll area works properly */
 [data-radix-scroll-area-viewport] {
   scroll-behavior: smooth;
 }
 
-/* 修复滚动条样式 */
+/* Fix scrollbar styles */
 [data-radix-scroll-area-scrollbar] {
   transition: opacity 0.2s;
 }
@@ -287,35 +288,35 @@ body .hover\\:text-\\[\\#E6EDF3\\]:hover {
   opacity: 1 !important;
 }
 
-/* 确保Tabs内容区域高度正确 */
+/* Ensure Tabs content area height is correct */
 [data-state="active"] {
   min-height: 0;
 }
 
-/* 确保Tabs内容在活动状态下正确显示 */
+/* Ensure Tabs content displays correctly in active state */
 [data-state="active"].flex-1 {
   display: flex;
   flex: 1;
   min-height: 0;
 }
 
-/* 确保非活动状态下的Tabs内容正确隐藏 */
+/* Ensure Tabs content is correctly hidden in inactive state */
 [data-state="inactive"] {
   display: none;
 }
 
-/* 确保ScrollArea在flex容器中正常工作 */
+/* Ensure ScrollArea works properly in flex containers */
 .scrollarea-container {
   min-height: 0;
   flex: 1;
 }
 
-/* 确保flex容器中的滚动区域正常工作 */
+/* Ensure scroll area works properly in flex containers */
 .flex-min-height-0 {
   min-height: 0;
 }
 
-/* 修复消息容器中的代码块溢出问题 */
+/* Fix code block overflow issues in message containers */
 .prose.prose-sm {
   font-size: 0.875rem;
   line-height: 1.5;
@@ -354,7 +355,7 @@ body .hover\\:text-\\[\\#E6EDF3\\]:hover {
   overflow-wrap: break-word;
 }
 
-/* 确保消息容器不会溢出 */
+/* Ensure message containers do not overflow */
 .message-content {
   max-width: 100%;
   word-wrap: break-word;
@@ -363,14 +364,14 @@ body .hover\\:text-\\[\\#E6EDF3\\]:hover {
   word-break: break-word;
 }
 
-/* 用户消息中的长文件信息处理 */
+/* Handle long file information in user messages */
 .user-message .message-content {
   word-break: break-all;
   hyphens: auto;
   line-height: 1.4;
 }
 
-/* 修复长代码块导致的布局问题 */
+/* Fix layout issues caused by long code blocks */
 .prose.prose-sm pre::-webkit-scrollbar {
   height: 6px;
 }
@@ -389,12 +390,12 @@ body .hover\\:text-\\[\\#E6EDF3\\]:hover {
   background: hsl(var(--muted-foreground) / 0.5);
 }
 
-/* 确保flex容器中的子元素不会溢出 */
+/* Ensure child elements in flex containers do not overflow */
 .flex-overflow-hidden {
   overflow: hidden;
 }
 
-/* 增强滚动区域样式 */
+/* Enhance scroll area styles */
 .enhanced-scroll-area {
   min-height: 0;
   flex: 1;
@@ -402,7 +403,7 @@ body .hover\\:text-\\[\\#E6EDF3\\]:hover {
   scroll-behavior: smooth;
 }
 
-/* 修复flex嵌套布局中的滚动问题 */
+/* Fix scrolling issues in nested flex layouts */
 .flex-scroll-container {
   display: flex;
   flex-direction: column;
@@ -415,7 +416,7 @@ body .hover\\:text-\\[\\#E6EDF3\\]:hover {
   overflow-y: auto;
 }
 
-/* 原生滚动条样式优化 */
+/* Native scrollbar style optimization */
 .overflow-y-auto {
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--muted-foreground)) hsl(var(--muted));
@@ -439,7 +440,7 @@ body .hover\\:text-\\[\\#E6EDF3\\]:hover {
   background: hsl(var(--foreground));
 }
 
-/* 确保执行日志内容不溢出 */
+/* Ensure execution log content does not overflow */
 .execution-log-content {
   max-width: 100%;
   word-wrap: break-word;
@@ -450,14 +451,14 @@ body .hover\\:text-\\[\\#E6EDF3\\]:hover {
   word-break: break-all;
 }
 
-/* 确保Tabs组件正确显示 */
+/* Ensure Tabs component displays correctly */
 [data-radix-collection-item] {
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* 确保TabsTrigger按钮可见 */
+/* Ensure TabsTrigger button is visible */
 button[data-radix-collection-item] {
   display: inline-flex;
   align-items: center;
@@ -471,13 +472,13 @@ button[data-radix-collection-item] {
   border: 1px solid transparent;
 }
 
-/* 确保TabsList布局正确 */
+/* Ensure TabsList layout is correct */
 [data-radix-tabs-list] {
   display: grid;
   width: 100%;
 }
 
-/* 确保Tabs内容区域正确显示滚动条 */
+/* Ensure Tabs content area displays scrollbar correctly */
 [data-radix-tabs-content] {
   position: relative;
   min-height: 0;
@@ -515,7 +516,7 @@ button[data-radix-collection-item] {
   animation-delay: 500ms;
 }
 
-/* 修复 dark theme 中 font-mono 元素的文字颜色问题 */
+/* Fix text color issues for font-mono elements in dark theme */
 .font-mono {
   color: hsl(var(--foreground)) !important;
 }
