@@ -12,17 +12,14 @@ import {
   Background,
   MiniMap,
   NodeTypes,
-  EdgeTypes,
   Connection,
   OnConnect,
   BackgroundVariant,
   ReactFlowProvider,
   useReactFlow,
-  BaseEdge,
-  EdgeLabelRenderer,
-  getBezierPath,
   Handle,
   Position,
+  useHandleConnections,
 } from "@xyflow/react"
 import "@xyflow/react/dist/style.css"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -30,8 +27,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { JsonRenderer } from "@/components/ui/markdown-renderer"
-import { formatTime } from "@/lib/time-utils"
-import { Loader2, Brain, Network, Sparkles, Timer, XCircle, AlertCircle, RefreshCw, RotateCcw, LayoutDashboard,LayoutPanelLeft, Wrench, GitBranch } from "lucide-react"
+import { formatTime, getTimeDuration, formatDuration } from "@/lib/time-utils"
+import { Loader2, Brain, Network, Sparkles, Timer, XCircle, AlertCircle, RefreshCw, RotateCcw, LayoutDashboard,LayoutPanelLeft, Wrench, GitBranch, CheckCircle2 } from "lucide-react"
 import { useI18n } from "@/contexts/i18n-context";
 
 
@@ -75,58 +72,6 @@ interface CenterPanelProps {
   onLayoutChange?: (layout: 'TB' | 'LR') => void
   currentTaskStatus?: "pending" | "running" | "completed" | "failed" | "paused"
   onFileClick?: (filePath: string, fileName: string) => void
-}
-
-
-const TimeInformationRenderer = ({ data }: { data: any }) => {
-  const { t, locale } = useI18n();
-  if (!data.started_at && !data.completed_at) {
-    return null
-  }
-
-  return (
-    <div className="space-y-2 border-t border-border pt-3">
-      <div className="text-sm font-medium text-foreground mb-2">{t("agent.layout.center.time.title")}</div>
-
-      {data.started_at && (
-        <div className="flex items-center justify-between">
-          <span className="text-muted-foreground">{t("agent.layout.center.time.startedAt")}</span>
-          <span className="font-mono text-foreground">
-            {new Date(data.started_at).toLocaleString(locale || "zh-CN")}
-          </span>
-        </div>
-      )}
-
-      {data.completed_at && (
-        <div className="flex items-center justify-between">
-          <span className="text-muted-foreground">{t("agent.layout.center.time.completedAt")}</span>
-          <span className="font-mono text-foreground">
-            {new Date(data.completed_at).toLocaleString(locale || "zh-CN")}
-          </span>
-        </div>
-      )}
-
-      {data.started_at && data.completed_at && (
-        <div className="flex items-center justify-between">
-          <span className="text-muted-foreground">{t("agent.layout.center.time.duration")}</span>
-          <span className="font-mono text-[#F59E0B]">
-            {(() => {
-              try {
-                const start = new Date(data.started_at).getTime()
-                const end = new Date(data.completed_at).getTime()
-                const duration = end - start
-                if (duration < 1000) return `${duration}ms`
-                if (duration < 60000) return `${(duration / 1000).toFixed(1)}s`
-                return `${(duration / 60000).toFixed(1)}min`
-              } catch {
-                return t("agent.layout.common.unknown")
-              }
-            })()}
-          </span>
-        </div>
-      )}
-    </div>
-  )
 }
 
 // Error State Component
@@ -315,14 +260,19 @@ const PlanningLoadingState = () => {
 }
 
 const nodeTypes: NodeTypes = {
-  default: ({ data, isConnectable }) => {
+  default: ({ data, isConnectable, selected }) => {
     const { t } = useI18n();
+    const targetConnections = useHandleConnections({ type: 'target' });
+    const sourceConnections = useHandleConnections({ type: 'source' });
+    const hasTarget = targetConnections.length > 0;
+    const hasSource = sourceConnections.length > 0;
+
     const statusStyles = {
-      pending: "border-border text-muted-foreground",
-      running: "border-[rgba(59,130,246,0.5)] text-primary animate-pulse",
-      completed: "border-[rgba(34,197,94,0.5)] text-[#E6EDF3]",
-      failed: "border-[rgba(239,68,68,0.5)] text-destructive",
-      skipped: "border-dashed border-2 border-gray-500/50 text-gray-400 bg-gray-500/5",
+      pending: "opacity-80",
+      running: "",
+      completed: "",
+      failed: "",
+      skipped: "border-dashed border-gray-500/50 opacity-60 bg-gray-500/5",
     }
 
     const statusBadges = {
@@ -362,127 +312,121 @@ const nodeTypes: NodeTypes = {
     }
 
     return (
-      <>
-        <div
+      <div
+        className={cn(
+          "relative bg-card rounded-2xl border min-w-[200px] max-w-[240px] text-left transition-all hover:shadow-lg group",
+          selected ? "border-primary shadow-[0_0_0_1px_hsl(var(--primary))] shadow-sm" : "border-border shadow-sm",
+          statusStyles[data.status as keyof typeof statusStyles]
+        )}
+      >
+        <Handle
+          type="target"
+          position={Position.Top}
           className={cn(
-            "relative px-3 py-2 rounded-xl border-2 backdrop-blur-sm shadow-lg min-w-[180px] max-w-[220px] text-center transition-all duration-200 hover:shadow-xl bg-card",
-            statusStyles[data.status as keyof typeof statusStyles]
+            "transition-opacity duration-200",
+            hasTarget ? "opacity-100" : "opacity-0"
           )}
-        >
-          <Handle
-            type="target"
-            position={Position.Top}
-            style={{
-              background: '#3b82f6',
-              width: 8,
-              height: 8,
-              border: '2px solid #ffffff',
-              top: -4,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              position: 'absolute',
-            }}
-            isConnectable={isConnectable}
-          />
-          {/* Step Name */}
-          <div className="font-medium text-sm text-[#E6EDF3] mb-2 truncate px-1" title={data.label}>
-            {data.label}
+          style={{
+            background: '#3b82f6',
+            width: 12,
+            height: 6,
+            borderRadius: 3,
+            border: '1px solid #ffffff',
+            top: -3,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            position: 'absolute',
+          }}
+          isConnectable={isConnectable}
+        />
+
+        <div className="p-4 flex flex-col gap-3">
+          {/* Header Row */}
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-2.5">
+              <div className={cn(
+                "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
+                data.status === 'completed' ? 'bg-green-500/10 text-green-600' :
+                data.status === 'running' ? 'bg-blue-500/10 text-blue-600' :
+                data.status === 'failed' ? 'bg-red-500/10 text-red-600' :
+                data.status === 'skipped' ? 'bg-gray-500/10 text-gray-500' :
+                'bg-primary/10 text-primary'
+              )}>
+                {data.status === 'completed' ? <CheckCircle2 className="w-4 h-4" /> :
+                 data.status === 'running' ? <Loader2 className="w-4 h-4 animate-spin" /> :
+                 data.status === 'failed' ? <XCircle className="w-4 h-4 text-red-500" /> :
+                 data.status === 'skipped' ? <RotateCcw className="w-4 h-4 text-gray-500" /> :
+                 <Brain className="w-4 h-4" />}
+              </div>
+              <div className="font-bold text-sm text-foreground tracking-wide leading-tight">{data.label}</div>
+            </div>
           </div>
 
-          {/* Status Badge */}
-          <div className="mb-2">
-            <Badge
-              variant={statusBadges[data.status as keyof typeof statusBadges].variant}
-              className={`text-xs ${data.status === 'completed' ? 'bg-green-500/10 text-green-500' : ''}`}
-            >
-              {statusBadges[data.status as keyof typeof statusBadges].label}
-            </Badge>
-          </div>
-
-          {/* Conditional Branch Indicator */}
-          {data.is_conditional && data.conditional_branches && Object.keys(data.conditional_branches).length > 0 && (
-            <div className="mb-2 px-2 py-1 bg-purple-500/10 border border-purple-500/20 rounded">
-              <div className="flex items-center gap-1 text-xs text-purple-400">
-                <GitBranch className="h-3 w-3" />
-                <span className="font-medium">{t("agent.layout.center.labels.conditionalBranchNode")}</span>
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                {t("agent.layout.center.labels.branches")} {Object.keys(data.conditional_branches).join(", ")}
-              </div>
-            </div>
-          )}
-
-          {/* Required Branch Indicator */}
-          {data.required_branch && (
-            <div className="mb-2 px-2 py-1 bg-blue-500/10 border border-blue-500/20 rounded">
-              <div className="flex items-center gap-1 text-xs text-blue-400">
-                <GitBranch className="h-3 w-3" />
-                <span className="font-medium">{t("agent.layout.center.labels.requiredBranch")}</span>
-                <code className="bg-blue-500/20 px-1 py-0.5 rounded text-xs">
-                  {data.required_branch}
-                </code>
-              </div>
-            </div>
-          )}
-
-          {/* Tools */}
+          {/* Tools / Tags */}
           {data.tool_names && data.tool_names.length > 0 && (
-            <div className="text-xs text-muted-foreground font-mono mb-2 px-2 py-1 bg-muted rounded-md">
-              <Wrench className="h-3 w-3 inline mr-1" />
-              <span className="break-words whitespace-normal" title={data.tool_names.join(", ")}>
-                {data.tool_names.join(", ")}
-              </span>
+            <div className="flex items-center gap-1.5 bg-muted/60 rounded-md px-2 py-1 w-fit border border-border/50">
+              <Wrench className="flex-shrink-0 w-3.5 h-3.5 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground">{data.tool_names.join(', ')}</span>
             </div>
           )}
 
-          {/* Time Information */}
-          {(data.started_at || data.completed_at) && (
-            <div className="text-xs text-muted-foreground space-y-1 border-t border-border pt-2 mt-2">
-              {data.started_at && (
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">{t("agent.layout.center.time.startedAt")}</span>
-                  <span className="font-mono">{formatTime(data.started_at)}</span>
+          {/* Branches / Specifics - Gray Blocks */}
+          {data.conditional_branches && Object.keys(data.conditional_branches).length > 0 && (
+            <div className="space-y-1.5 mt-1">
+              {Object.entries(data.conditional_branches).map(([branch, target], idx) => (
+                <div key={idx} className="bg-muted/40 rounded-lg px-3 py-2 border border-border/40">
+                  <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">{t("agent.layout.center.labels.branches")} {idx + 1}</div>
+                  <div className="text-xs font-medium text-foreground">{branch}</div>
                 </div>
-              )}
-              {data.completed_at && (
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">{t("agent.layout.center.time.completedAt")}</span>
-                  <span className="font-mono">{formatTime(data.completed_at)}</span>
-                </div>
-              )}
-              {(data.started_at || data.completed_at) && (
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">{t("agent.layout.center.time.duration")}</span>
-                  <span className="font-mono text-[#F59E0B]">{getDuration()}</span>
-                </div>
-              )}
+              ))}
             </div>
           )}
 
-          {/* Description (if available and short) */}
-          {data.description && data.description.length < 30 && (
-            <div className="text-xs text-muted-foreground mt-2 px-1 italic truncate" title={data.description}>
+          {/* Required Branch */}
+          {data.required_branch && (
+            <div className="bg-blue-500/5 rounded-lg px-3 py-2 border border-blue-500/10">
+              <div className="text-[10px] font-semibold text-blue-500/70 uppercase tracking-wider mb-0.5">{t("agent.layout.center.labels.requiredBranch")}</div>
+              <div className="text-xs font-medium text-blue-600 dark:text-blue-400">{data.required_branch}</div>
+            </div>
+          )}
+
+          {/* Description */}
+          {data.description && (
+            <div className="text-xs text-muted-foreground leading-relaxed mt-1">
               {data.description}
             </div>
           )}
 
-          <Handle
-            type="source"
-            position={Position.Bottom}
-            style={{
-              background: '#3b82f6',
-              width: 8,
-              height: 8,
-              border: '2px solid #ffffff',
-              bottom: -4,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              position: 'absolute',
-            }}
-            isConnectable={isConnectable}
-          />
+          {/* Time */}
+          {(data.started_at || data.completed_at) && (
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground/70 mt-2 pt-2 border-t border-border/40">
+              <span>{data.started_at ? formatTime(data.started_at) : ''}</span>
+              {data.started_at && data.completed_at && <span>{getDuration()}</span>}
+            </div>
+          )}
         </div>
-      </>
+
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          className={cn(
+            "transition-opacity duration-200",
+            hasSource ? "opacity-100" : "opacity-0"
+          )}
+          style={{
+            background: '#3b82f6',
+            width: 12,
+            height: 6,
+            borderRadius: 3,
+            border: '1px solid #ffffff',
+            bottom: -3,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            position: 'absolute',
+          }}
+          isConnectable={isConnectable}
+        />
+      </div>
     )
   },
 }
@@ -661,7 +605,7 @@ function CenterPanelInner({
         </div>
 
       {/* DAG Visualization */}
-      <div className="flex-1 relative bg-background w-full h-full min-h-[500px]">
+      <div className="flex-1 relative bg-slate-50 dark:bg-muted/20 w-full h-full min-h-[500px]">
         {hasError ? (
           <ErrorState />
         ) : isPlanning ? (
@@ -679,13 +623,13 @@ function CenterPanelInner({
             maxZoom={2}
             defaultEdgeOptions={{
               style: {
-                stroke: '#3b82f6',
+                stroke: 'hsl(var(--primary))',
                 strokeWidth: 3,
               },
               animated: true,
             }}
             nodeTypes={nodeTypes}
-            nodesDraggable={false}
+            nodesDraggable={true}
             nodesConnectable={false}
             deleteKeyCode={null}
           >
@@ -797,6 +741,40 @@ function CenterPanelInner({
                   <p className="mt-1 text-muted-foreground leading-relaxed bg-muted p-2 rounded">
                     {selectedNode.data.description}
                   </p>
+                </div>
+              )}
+
+              {/* Time Information */}
+              {(selectedNode.data.started_at || selectedNode.data.completed_at) && (
+                <div className="space-y-2 border-t border-border pt-3">
+                  <div className="text-sm font-medium text-foreground mb-2">{t("agent.layout.center.time.title")}</div>
+
+                  {selectedNode.data.started_at && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">{t("agent.layout.center.time.startedAt")}</span>
+                      <span className="font-mono text-foreground">
+                        {formatTime(selectedNode.data.started_at, 'datetime')}
+                      </span>
+                    </div>
+                  )}
+
+                  {selectedNode.data.completed_at && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">{t("agent.layout.center.time.completedAt")}</span>
+                      <span className="font-mono text-foreground">
+                        {formatTime(selectedNode.data.completed_at, 'datetime')}
+                      </span>
+                    </div>
+                  )}
+
+                  {selectedNode.data.started_at && selectedNode.data.completed_at && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">{t("agent.layout.center.time.duration")}</span>
+                      <span className="font-mono text-[#F59E0B]">
+                        {formatDuration(getTimeDuration(selectedNode.data.started_at, selectedNode.data.completed_at))}
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
 

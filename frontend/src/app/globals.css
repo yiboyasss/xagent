@@ -263,6 +263,16 @@ body .hover\\:text-\\[\\#E6EDF3\\]:hover {
   display: none !important;
 }
 
+/* 覆盖 React Flow 节点选中时的默认样式，防止出现距离感 */
+.react-flow__node.selected {
+  box-shadow: none !important;
+}
+
+/* 覆盖 React Flow 节点 hover 时的默认阴影，防止与自定义样式冲突 */
+.react-flow__node:hover {
+  box-shadow: none !important;
+}
+
 /* 确保滚动区域正常工作 */
 [data-radix-scroll-area-viewport] {
   scroll-behavior: smooth;
