@@ -228,6 +228,15 @@ export function Sidebar({ className }: SidebarProps) {
       if (response.ok) {
         setTasks(prev => prev.filter(task => task.task_id !== taskId))
 
+        // Clean up refs and state
+        taskStatusRef.current.delete(String(taskId))
+        setUnreadTasks(prev => {
+          if (!prev.has(String(taskId))) return prev
+          const next = new Set(prev)
+          next.delete(String(taskId))
+          return next
+        })
+
         if (Number(getCurrentTaskId()) === Number(taskId)) {
           router.push('/task')
         }
@@ -284,11 +293,12 @@ export function Sidebar({ className }: SidebarProps) {
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const navRef = useRef<HTMLElement | null>(null)
   const pathnameRef = useRef(pathname)
+  pathnameRef.current = pathname // Synchronous update during render
   const displayVersion = versionInfo?.display_version || "unknown"
 
-  useEffect(() => {
-    pathnameRef.current = pathname
-  }, [pathname])
+  // Loading state ref for polling interval
+  const loadingRef = useRef({ isLoadingTasks, isLoadingMore })
+  loadingRef.current = { isLoadingTasks, isLoadingMore }
 
   useEffect(() => {
     let isCancelled = false
@@ -416,7 +426,20 @@ export function Sidebar({ className }: SidebarProps) {
           })
         }
 
-        if (isAppending) {
+        if (isPolling) {
+          setTasks(prev => {
+            const prevIds = new Set(prev.map(t => String(t.task_id)))
+            const completelyNewTasks = newTasks.filter((t: Task) => !prevIds.has(String(t.task_id)))
+
+            const newTasksMap = new Map(newTasks.map((t: Task) => [String(t.task_id), t]))
+            const updatedTasks = prev.map(t => {
+              const updated = newTasksMap.get(String(t.task_id))
+              return updated ? { ...t, ...updated } : t
+            })
+
+            return [...completelyNewTasks, ...updatedTasks]
+          })
+        } else if (isAppending) {
           setTasks(prev => [...prev, ...newTasks])
         } else {
           setTasks(newTasks)
@@ -439,29 +462,23 @@ export function Sidebar({ className }: SidebarProps) {
   useEffect(() => {
     const interval = setInterval(() => {
       // Only poll if window is visible and not already loading
-      if (document.visibilityState === 'visible' && !isLoadingTasks && !isLoadingMore) {
+      if (document.visibilityState === 'visible' && !loadingRef.current.isLoadingTasks && !loadingRef.current.isLoadingMore) {
         loadTasks(1, false, true)
       }
     }, 30000) // Poll every 30 seconds
 
     return () => clearInterval(interval)
-  }, [loadTasks, isLoadingTasks, isLoadingMore])
+  }, [loadTasks])
 
   // Clear unread status when entering a task page
   useEffect(() => {
     const currentTaskId = getCurrentTaskId()
     if (currentTaskId) {
       setUnreadTasks(prev => {
-        // Use string comparison to ensure type safety (API might return number)
-        const hasTask = Array.from(prev).some(id => String(id) === String(currentTaskId))
-        if (!hasTask) return prev
+        if (!prev.has(String(currentTaskId))) return prev
 
-        const next = new Set<string>()
-        prev.forEach(id => {
-          if (String(id) !== String(currentTaskId)) {
-            next.add(String(id))
-          }
-        })
+        const next = new Set(prev)
+        next.delete(String(currentTaskId))
         return next
       })
     }
@@ -727,7 +744,7 @@ export function Sidebar({ className }: SidebarProps) {
                         </div>
                         <span className="truncate flex-1 text-left">{task.title || "Untitled Task"}</span>
                         {unreadTasks.has(String(task.task_id)) && (
-                          <div className="absolute right-4 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-blue-500 group-hover:opacity-0 transition-opacity" />
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-primary group-hover:opacity-0 transition-opacity" />
                         )}
                         <button
                           onClick={(e) => deleteTask(task.task_id, e)}
