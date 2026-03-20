@@ -54,8 +54,8 @@ class User(Base):  # type: ignore
     user_default_models = relationship(
         "UserDefaultModel", back_populates="user", cascade="all, delete-orphan"
     )
-    user_mcpservers = relationship(
-        "UserMCPServer", back_populates="user", cascade="all, delete-orphan"
+    oauth_accounts = relationship(
+        "UserOAuth", back_populates="user", cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:
