@@ -4,10 +4,9 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Settings, X, Loader2, Info, ArrowRight } from "lucide-react"
-import { cn, getApiUrl, getAuthHeaders } from "@/lib/utils"
+import { Settings, X, Loader2, ArrowRight } from "lucide-react"
+import { getApiUrl } from "@/lib/utils"
 import { apiRequest } from "@/lib/api-wrapper"
 import { useAuth } from "@/contexts/auth-context"
 import { Select } from "@/components/ui/select"
@@ -15,10 +14,7 @@ import { Slider } from "@/components/ui/slider"
 import { Label } from "@/components/ui/label"
 import { useI18n } from "@/contexts/i18n-context"
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+  InfoTooltip,
 } from "@/components/ui/tooltip"
 
 interface Model {
@@ -53,7 +49,6 @@ interface ConfigDialogProps {
 }
 
 export function ConfigDialog({ onConfigChange, currentConfig, trigger }: ConfigDialogProps) {
-  const { token } = useAuth()
   const router = useRouter();
   const [open, setOpen] = useState(false)
   const [models, setModels] = useState<Model[]>([])
@@ -213,20 +208,7 @@ export function ConfigDialog({ onConfigChange, currentConfig, trigger }: ConfigD
                     <Label className="text-sm">
                       {t('agent.configDialog.modelSelect.main.label')}
                     </Label>
-                    <TooltipProvider>
-                      <Tooltip delayDuration={300}>
-                        <TooltipTrigger asChild>
-                          <div className="cursor-default">
-                            <Info className="h-3 w-3 text-muted-foreground/70 hover:text-muted-foreground" />
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="max-w-[200px]">
-                            {t('agent.configDialog.modelSelect.main.hint')}
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <InfoTooltip content={t('agent.configDialog.modelSelect.main.hint')} />
                   </div>
                   <Select
                     value={config.model}
@@ -249,20 +231,7 @@ export function ConfigDialog({ onConfigChange, currentConfig, trigger }: ConfigD
                     <Label className="text-sm">
                       {t('agent.configDialog.modelSelect.smallFast.label')}
                     </Label>
-                    <TooltipProvider>
-                      <Tooltip delayDuration={300}>
-                        <TooltipTrigger asChild>
-                          <div className="cursor-default">
-                            <Info className="h-3 w-3 text-muted-foreground/70 hover:text-muted-foreground" />
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="max-w-[200px]">
-                            {t('agent.configDialog.modelSelect.smallFast.hint')}
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <InfoTooltip content={t('agent.configDialog.modelSelect.smallFast.hint')} />
                   </div>
                   <Select
                     value={config.smallFastModel || ""}
@@ -288,20 +257,7 @@ export function ConfigDialog({ onConfigChange, currentConfig, trigger }: ConfigD
                     <Label className="text-sm">
                       {t('agent.configDialog.modelSelect.visual.label')}
                     </Label>
-                    <TooltipProvider>
-                      <Tooltip delayDuration={300}>
-                        <TooltipTrigger asChild>
-                          <div className="cursor-default">
-                            <Info className="h-3 w-3 text-muted-foreground/70 hover:text-muted-foreground" />
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="max-w-[200px]">
-                            {t('agent.configDialog.modelSelect.visual.hint')}
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <InfoTooltip content={t('agent.configDialog.modelSelect.visual.hint')} />
                   </div>
                   <Select
                     value={config.visualModel || ""}
@@ -327,20 +283,7 @@ export function ConfigDialog({ onConfigChange, currentConfig, trigger }: ConfigD
                     <Label className="text-sm">
                       {t('agent.configDialog.modelSelect.compact.label')}
                     </Label>
-                    <TooltipProvider>
-                      <Tooltip delayDuration={300}>
-                        <TooltipTrigger asChild>
-                          <div className="cursor-default">
-                            <Info className="h-3 w-3 text-muted-foreground/70 hover:text-muted-foreground" />
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="max-w-[200px]">
-                            {t('agent.configDialog.modelSelect.compact.hint')}
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <InfoTooltip content={t('agent.configDialog.modelSelect.compact.hint')} />
                   </div>
                   <Select
                     value={config.compactModel || ""}

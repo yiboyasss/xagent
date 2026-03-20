@@ -11,17 +11,14 @@ import { ChatInput } from "@/components/chat/ChatInput"
 import { ChatMessage } from "@/components/chat/ChatMessage"
 import { apiRequest } from "@/lib/api-wrapper"
 import { getApiUrl, getWsUrl } from "@/lib/utils"
-import { PlusCircle, MessageSquare, Upload, Download, Info, Settings2, Check, Zap, BookOpen, ChevronLeft, Sparkles, Loader2, AlertTriangle } from "lucide-react"
+import { PlusCircle, MessageSquare, Upload, Download, Settings2, Check, Zap, BookOpen, ChevronLeft, Sparkles, Loader2, AlertTriangle } from "lucide-react"
 import { useI18n } from "@/contexts/i18n-context"
 import { useAuth } from "@/contexts/auth-context"
 import { FileAttachment } from "@/components/file-attachment"
 import { MultiSelect } from "@/components/ui/multi-select"
 import { Select } from "@/components/ui/select"
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+  InfoTooltip,
 } from "@/components/ui/tooltip"
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
 import {
@@ -1089,18 +1086,7 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
                 <Label className="text-xs text-muted-foreground">
                   {t("builds.configForm.model.types.general")}
                 </Label>
-                <TooltipProvider>
-                  <Tooltip delayDuration={300}>
-                    <TooltipTrigger asChild>
-                      <div className="cursor-default">
-                        <Info className="h-3 w-3 text-muted-foreground/70 hover:text-muted-foreground" />
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-[200px]">{t("builds.configForm.model.tips.general")}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <InfoTooltip content={t("builds.configForm.model.tips.general")} />
               </div>
               <Select
                 value={modelConfig.general?.toString() || ""}
@@ -1142,18 +1128,7 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
                     <Label className="text-xs text-muted-foreground">
                       {t("builds.configForm.model.types.smallFast")}
                     </Label>
-                    <TooltipProvider>
-                      <Tooltip delayDuration={300}>
-                        <TooltipTrigger asChild>
-                          <div className="cursor-default">
-                            <Info className="h-3 w-3 text-muted-foreground/70 hover:text-muted-foreground" />
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="max-w-[200px]">{t("builds.configForm.model.tips.smallFast")}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <InfoTooltip content={t("builds.configForm.model.tips.smallFast")} />
                   </div>
                   <Select
                     value={modelConfig.small_fast?.toString() || ""}
@@ -1172,18 +1147,7 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
                     <Label className="text-xs text-muted-foreground">
                       {t("builds.configForm.model.types.visual")}
                     </Label>
-                    <TooltipProvider>
-                      <Tooltip delayDuration={300}>
-                        <TooltipTrigger asChild>
-                          <div className="cursor-default">
-                            <Info className="h-3 w-3 text-muted-foreground/70 hover:text-muted-foreground" />
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="max-w-[200px]">{t("builds.configForm.model.tips.visual")}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <InfoTooltip content={t("builds.configForm.model.tips.visual")} />
                   </div>
                   <Select
                     value={modelConfig.visual?.toString() || ""}
@@ -1202,18 +1166,7 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
                     <Label className="text-xs text-muted-foreground">
                       {t("builds.configForm.model.types.compact")}
                     </Label>
-                    <TooltipProvider>
-                      <Tooltip delayDuration={300}>
-                        <TooltipTrigger asChild>
-                          <div className="cursor-default">
-                            <Info className="h-3 w-3 text-muted-foreground/70 hover:text-muted-foreground" />
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="max-w-[200px]">{t("builds.configForm.model.tips.compact")}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <InfoTooltip content={t("builds.configForm.model.tips.compact")} />
                   </div>
                   <Select
                     value={modelConfig.compact?.toString() || ""}
@@ -1238,7 +1191,10 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
         {/* Knowledge Base - Multi Select */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label>{t("builds.configForm.knowledgeBase.label")}</Label>
+            <div className="flex items-center gap-1.5">
+              <Label>{t("builds.configForm.knowledgeBase.label")}</Label>
+              <InfoTooltip content={t("builds.configForm.model.tips.knowledgeBase")} />
+            </div>
             <Button
               variant="secondary"
               size="sm"
@@ -1260,7 +1216,10 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
 
         {/* Skills - Multi Select */}
         <div className="space-y-2">
-          <Label>{t("builds.configForm.skills.label")}</Label>
+          <div className="flex items-center gap-1.5">
+            <Label>{t("builds.configForm.skills.label")}</Label>
+            <InfoTooltip content={t("builds.configForm.model.tips.skills")} />
+          </div>
           {skills.length > 0 ? (
             <MultiSelect
               values={selectedSkills}
@@ -1277,7 +1236,10 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
 
         {/* Tools - Multi Select by Category */}
         <div className="space-y-2">
-          <Label>{t("builds.configForm.tools.label")}</Label>
+          <div className="flex items-center gap-1.5">
+            <Label>{t("builds.configForm.tools.label")}</Label>
+            <InfoTooltip content={t("builds.configForm.model.tips.tools")} />
+          </div>
           {toolCategories.length > 0 ? (
             <MultiSelect
               values={selectedToolCategories}

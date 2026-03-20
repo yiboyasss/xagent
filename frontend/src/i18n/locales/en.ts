@@ -1686,6 +1686,9 @@ Build when you need.`
           smallFast: "For simple operations",
           visual: "For conversation history compression",
           compact: "For image understanding",
+          knowledgeBase: "A collection of documents or data your agent can retrieve from at runtime using semantic search. Attach a knowledge base to give your agent access to domain-specific information beyond its training data.",
+          skills: "Reusable, pre-configured capabilities that combine a set of tools with instructions on how to use them. Add skills to extend what your agent can do without writing new logic from scratch.",
+          tools: "Categories of actions your agent can execute — such as web search, code execution, or API calls.",
         },
       },
       knowledgeBase: {

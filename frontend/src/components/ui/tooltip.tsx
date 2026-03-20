@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import * as TooltipPrimitive from "@radix-ui/react-tooltip"
+import { Info } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -26,5 +27,22 @@ const TooltipContent = React.forwardRef<
   />
 ))
 TooltipContent.displayName = TooltipPrimitive.Content.displayName
+
+export function InfoTooltip({ content, icon = <Info /> }: { content: React.ReactNode; icon?: React.ReactNode }) {
+  return (
+    <TooltipProvider>
+      <Tooltip delayDuration={300}>
+        <TooltipTrigger asChild>
+          <div className="cursor-default">
+            {React.cloneElement(icon as React.ReactElement, { className: "h-3 w-3 text-muted-foreground/70 hover:text-muted-foreground" })}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p className="max-w-[200px]">{content}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  )
+}
 
 export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }
