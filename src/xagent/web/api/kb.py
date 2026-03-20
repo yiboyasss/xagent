@@ -95,7 +95,7 @@ async def save_collection_config(
     )
     from ...providers.vector_store.lancedb import get_connection_from_env
 
-    try:
+    def _save_config():
         conn = get_connection_from_env()
         ensure_collection_config_table(conn)
         table = conn.open_table("collection_config")
@@ -121,6 +121,9 @@ async def save_collection_config(
         ]
 
         table.add(data)
+
+    try:
+        await asyncio.to_thread(_save_config)
 
         return CollectionOperationResult(
             status="success",
