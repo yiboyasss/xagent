@@ -348,7 +348,6 @@ export function MemoryPage() {
 
         <div className="flex items-center gap-3">
           <SearchInput
-            type="search"
             placeholder={t("memory.filters.search.placeholder")}
             className="h-9"
             containerClassName="w-64 hidden sm:block"
