@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, Plus, Bot, Trash2, Send, MessageSquare } from "lucide-react"
+import { Search, Plus, Bot, Trash2, MessageSquare, Edit, MoreVertical, Globe, Calendar, Clock } from "lucide-react"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { useI18n } from "@/contexts/i18n-context"
 import { useRouter, useSearchParams } from "next/navigation"
 import { apiRequest } from "@/lib/api-wrapper"
@@ -16,6 +17,7 @@ interface Agent {
   logo_url: string | null
   status: string
   created_at: string
+  updated_at: string
 }
 
 export default function BuildsPage() {
@@ -23,10 +25,8 @@ export default function BuildsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [searchTerm, setSearchTerm] = useState("")
-  const [currentPage, setCurrentPage] = useState(1)
   const [agents, setAgents] = useState<Agent[]>([])
   const [loading, setLoading] = useState(true)
-  const itemsPerPage = 10
 
   // Check for template parameter and redirect to create page
   useEffect(() => {
@@ -104,13 +104,6 @@ export default function BuildsPage() {
     (agent.description && agent.description.toLowerCase().includes(searchTerm.toLowerCase()))
   )
 
-  // Pagination logic
-  const totalItems = filteredAgents.length
-  const totalPages = Math.ceil(totalItems / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = Math.min(startIndex + itemsPerPage, totalItems)
-  const currentAgents = filteredAgents.slice(startIndex, endIndex)
-
   const handleCreate = () => {
     router.push("/build/new")
   }
@@ -123,117 +116,158 @@ export default function BuildsPage() {
   return (
     <div className="flex flex-col h-full bg-background">
       {/* Header */}
-      <div className="border-b flex justify-between items-center p-8">
+      <div className="flex justify-between items-center p-8">
         <div>
           <h1 className="text-3xl font-bold mb-1">{t("builds.list.header.title")}</h1>
           <p className="text-muted-foreground">{t("builds.list.header.description")}</p>
         </div>
-        <Button onClick={handleCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          {t("builds.list.header.create")}
-        </Button>
+        <div className="flex items-center gap-4">
+          <div className="relative w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder={t("builds.list.search.placeholder")}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Button onClick={handleCreate}>
+            <Plus className="mr-2 h-4 w-4" />
+            {t("builds.list.header.create")}
+          </Button>
+        </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 p-6 space-y-6 overflow-auto">
-        {/* Search */}
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder={t("builds.list.search.placeholder")}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-
+      <div className="flex-1 px-6 pb-6 space-y-6 overflow-auto">
         {/* Loading State */}
         {loading ? (
           <div className="flex items-center justify-center h-[400px]">
-            <div className="text-muted-foreground">Loading...</div>
+            <div className="text-muted-foreground">{t("common.loading")}</div>
           </div>
         ) : (
           <>
             {/* List */}
-            {currentAgents.length > 0 ? (
+            {filteredAgents.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {currentAgents.map((agent) => (
+                {filteredAgents.map((agent) => (
                   <div
                     key={agent.id}
                     className="group relative flex flex-col justify-between space-y-4 rounded-xl border bg-card p-6 shadow-sm transition-all hover:shadow-md hover:border-primary/50"
                   >
-                    <div
-                      className="flex-1 cursor-pointer"
-                      onClick={() => router.push(`/build/${agent.id}`)}
-                    >
+                    <div className="flex-1">
                       <div className="space-y-4">
-                        <div className="flex items-start justify-between">
-                          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary overflow-hidden">
+                        <div className="flex items-start gap-4">
+                          <div className="h-10 w-10 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center text-primary overflow-hidden">
                             {agent.logo_url ? (
                               <img src={`${getApiUrl()}${agent.logo_url}`} alt={agent.name} className="h-full w-full object-cover" />
                             ) : (
                               <Bot className="h-6 w-6" />
                             )}
                           </div>
-                          <div className={`text-xs px-2 py-1 rounded-full capitalize ${
-                            agent.status === 'published'
-                              ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
-                              : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
-                          }`}>
-                            {agent.status === 'published' ? t('builds.list.status.published') : t('builds.list.status.draft')}
+                          <div className="flex-1 min-w-0 pr-6">
+                            <h3 className="font-semibold text-base leading-tight truncate" title={agent.name}>
+                              {agent.name}
+                            </h3>
+                            <div className="mt-2">
+                              <span className={`inline-flex text-[11px] px-2 py-0.5 rounded-full capitalize font-medium ${
+                                agent.status === 'published'
+                                  ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                                  : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                              }`}>
+                                {agent.status === 'published' ? t('builds.list.status.published') : t('builds.list.status.draft')}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                        <div className="space-y-2">
-                          <h3 className="font-semibold leading-none tracking-tight">{agent.name}</h3>
-                          <p className="text-sm text-muted-foreground line-clamp-2">
-                            {agent.description || "No description"}
-                          </p>
+                        <div className="absolute right-4 top-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent align="end" className="w-32 p-1" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex flex-col">
+                                <Button
+                                  variant="ghost"
+                                  className="justify-start px-2 py-1.5 h-auto font-normal text-sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (agent.status === 'published') {
+                                      handleUnpublish(agent.id)
+                                    } else {
+                                      handlePublish(agent.id)
+                                    }
+                                  }}
+                                >
+                                  <Globe className="mr-2 h-4 w-4" />
+                                  {agent.status === 'published' ? t('builds.list.actions.unpublish') : t('builds.list.actions.publish')}
+                                </Button>
+                                <div className="h-px bg-border my-1 mx-1" />
+                                <Button
+                                  variant="ghost"
+                                  className="justify-start px-2 py-1.5 h-auto font-normal text-sm text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleDelete(agent.id)
+                                  }}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  {t('builds.list.actions.delete')}
+                                </Button>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
                         </div>
+
+                        <p className="text-sm text-muted-foreground line-clamp-2 mt-4">
+                          {agent.description || t('builds.card.noDescription')}
+                        </p>
                       </div>
                     </div>
-                    <div className="space-y-3 pt-4 border-t">
-                      <div className="text-xs text-muted-foreground">
-                        {t('builds.card.createdAt')}: {formatDate(agent.created_at)}
+
+                    <div className="space-y-4 pt-2">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center text-xs text-muted-foreground">
+                          <Calendar className="h-3.5 w-3.5 mr-1.5" />
+                          {t('builds.card.createdAt')}: {formatDate(agent.created_at)}
+                        </div>
+                        <div className="flex items-center text-xs text-muted-foreground">
+                          <Clock className="h-3.5 w-3.5 mr-1.5" />
+                          {t('builds.card.updatedAt')}: {formatDate(agent.updated_at || agent.created_at)}
+                        </div>
                       </div>
                       <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                         {agent.status === 'published' ? (
                           <>
                             <Button
                               variant="default"
-                              size="sm"
-                              className="flex-1"
+                              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
                               onClick={() => router.push(`/agent/${agent.id}`)}
                             >
-                              <MessageSquare className="mr-1 h-3 w-3" />
+                              <MessageSquare className="mr-1.5 h-4 w-4" />
                               {t('builds.list.actions.chat')}
                             </Button>
                             <Button
                               variant="outline"
-                              size="sm"
-                              className="px-3"
-                              onClick={() => handleUnpublish(agent.id)}
+                              className="px-4"
+                              onClick={() => router.push(`/build/${agent.id}`)}
                             >
-                              {t('builds.list.actions.unpublish')}
+                              <Edit className="mr-1.5 h-4 w-4" />
+                              {t('builds.list.actions.edit')}
                             </Button>
                           </>
                         ) : (
                           <Button
                             variant="outline"
-                            size="sm"
-                            className="flex-1"
+                            className="flex-1 w-full"
                             onClick={() => router.push(`/build/${agent.id}`)}
                           >
+                            <Edit className="mr-1.5 h-4 w-4" />
                             {t('builds.list.actions.edit')}
                           </Button>
                         )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="px-3"
-                          onClick={() => handleDelete(agent.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
                       </div>
                     </div>
                   </div>
@@ -254,37 +288,6 @@ export default function BuildsPage() {
                   <Plus className="mr-2 h-4 w-4" />
                   {t("builds.list.empty.create")}
                 </Button>
-              </div>
-            )}
-
-            {/* Pagination */}
-            {totalItems > 0 && (
-              <div className="flex items-center justify-between pt-4 border-t">
-                <div className="text-sm text-muted-foreground">
-                  {t("builds.list.pagination.summary", {
-                    from: startIndex + 1,
-                    to: Math.min(endIndex, totalItems),
-                    total: totalItems
-                  })}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    {t("builds.list.pagination.prev")}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    {t("builds.list.pagination.next")}
-                  </Button>
-                </div>
               </div>
             )}
           </>

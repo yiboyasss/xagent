@@ -1556,14 +1556,9 @@ Build when you need.`
       noMatch: "No matching build records found"
     },
     card: {
-      appType: "Application Type",
-      createdAt: "Created At",
-      completedAt: "Completed At",
-      taskFallback: "Task #{id}",
-      taskIdLabel: "Task ID",
-      viewDetail: "View Details",
-      delete: "Delete",
-      deleteConfirm: "Are you sure you want to delete this build?"
+      createdAt: "Created",
+      updatedAt: "Updated",
+      noDescription: "No description",
     },
     list: {
       header: {
@@ -1579,11 +1574,6 @@ Build when you need.`
         description: "Get started by creating your first agent",
         create: "Create Agent",
       },
-      pagination: {
-        summary: "Showing {from}-{to} of {total} agents",
-        prev: "Previous",
-        next: "Next",
-      },
       status: {
         draft: "Draft",
         published: "Published",
@@ -1591,6 +1581,8 @@ Build when you need.`
       actions: {
         chat: "Chat",
         unpublish: "Unpublish",
+        publish: "Publish",
+        delete: "Delete",
         edit: "Edit",
         deleteConfirm: "Are you sure you want to delete this agent?",
       },
@@ -1605,11 +1597,6 @@ Build when you need.`
         error: "Error: {message}",
         sendFailed: "Failed to send message. Please try again.",
       }
-    },
-    pagination: {
-      summary: "Showing {from}-{to} of {total} builds",
-      prev: "Previous",
-      next: "Next"
     },
     editor: {
       header: {

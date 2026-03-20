@@ -106,6 +106,7 @@ class AgentListItem(BaseModel):
     logo_url: Optional[str]
     status: str
     created_at: str
+    updated_at: str
 
 
 class PublishResponse(BaseModel):
@@ -386,6 +387,9 @@ async def list_agents(
                 logo_url=agent.logo_url,
                 status=agent.status.value,
                 created_at=agent.created_at.isoformat(),
+                updated_at=agent.updated_at.isoformat()
+                if agent.updated_at
+                else agent.created_at.isoformat(),
             )
             for agent in agents
         ]

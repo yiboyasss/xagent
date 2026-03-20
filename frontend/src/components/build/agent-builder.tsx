@@ -1410,35 +1410,49 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
       <div className="border-b flex justify-between items-center p-8">
         <div>
           {isEditMode && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-1 mb-2 text-muted-foreground hover:text-foreground"
+            <div
+              className="inline-flex items-center gap-1 mb-2 cursor-pointer hover:text-primary"
               onClick={() => router.push("/build")}
             >
-              <ChevronLeft className="h-4 w-4 mr-1" />
+              <ChevronLeft className="h-4 w-4" />
               {t("builds.editor.header.backToList")}
-            </Button>
+            </div>
           )}
-          <h1 className="text-3xl font-bold mb-1">{t("builds.editor.header.title")}</h1>
+          <h1 className="text-3xl font-bold mb-1">{name || t("builds.editor.header.title")}</h1>
           <p className="text-muted-foreground">{t("builds.editor.header.subtitle")}</p>
         </div>
         <div className="flex items-center gap-4">
-          {isEditMode && !isDirty && originalData?.status === "published" ? (
-            <>
-              <Button variant="outline" onClick={handleUnpublish} disabled={isCreating || loadingAgent}>
+          <Button
+            onClick={handleCreate}
+            disabled={isCreating || loadingAgent || (isEditMode && !isDirty)}
+          >
+            {isCreating
+              ? isEditMode
+                ? t("builds.editor.header.updating")
+                : t("builds.editor.header.creating")
+              : isEditMode
+              ? t("builds.editor.header.update")
+              : t("builds.editor.header.create")}
+          </Button>
+
+          {isEditMode && (
+            originalData?.status === "published" ? (
+              <Button
+                variant="outline"
+                onClick={handleUnpublish}
+                disabled={isCreating || loadingAgent}
+              >
                 {t("builds.editor.header.unpublish")}
               </Button>
-            </>
-          ) : (
-            <Button onClick={isEditMode && !isDirty ? handlePublish : handleCreate} disabled={isCreating || loadingAgent}>
-              {isCreating
-                ? (isEditMode ? t("builds.editor.header.updating") : t("builds.editor.header.creating"))
-                : isEditMode
-                ? (isDirty ? t("builds.editor.header.update") : t("builds.editor.header.publish"))
-                : t("builds.editor.header.create")
-              }
-            </Button>
+            ) : (
+              <Button
+                variant="secondary"
+                onClick={handlePublish}
+                disabled={isCreating || loadingAgent || isDirty}
+              >
+                {t("builds.editor.header.publish")}
+              </Button>
+            )
           )}
         </div>
       </div>

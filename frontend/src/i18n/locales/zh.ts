@@ -1556,14 +1556,9 @@ Build when you need.`
       noMatch: "没有找到匹配的构建记录"
     },
     card: {
-      appType: "应用类型",
-      createdAt: "创建时间",
-      completedAt: "完成时间",
-      taskFallback: "Task #{id}",
-      taskIdLabel: "Task ID",
-      viewDetail: "查看详情",
-      delete: "删除",
-      deleteConfirm: "确定要删除这个 Build 吗？"
+      createdAt: "创建",
+      updatedAt: "更新",
+      noDescription: "暂无描述",
     },
     list: {
       header: {
@@ -1579,11 +1574,6 @@ Build when you need.`
         description: "开始创建你的第一个 Agent",
         create: "创建 Agent",
       },
-      pagination: {
-        summary: "显示第 {from} 到 {to} 条，共 {total} 条",
-        prev: "上一页",
-        next: "下一页",
-      },
       status: {
         draft: "草稿",
         published: "已发布",
@@ -1591,6 +1581,8 @@ Build when you need.`
       actions: {
         chat: "聊天",
         unpublish: "取消发布",
+        publish: "发布",
+        delete: "删除",
         edit: "编辑",
         deleteConfirm: "确定要删除这个 Agent 吗？",
       },
@@ -1605,11 +1597,6 @@ Build when you need.`
         error: "错误：{message}",
         sendFailed: "发送消息失败，请重试。",
       }
-    },
-    pagination: {
-      summary: "显示第 {from} 到 {to} 条，共 {total} 条",
-      prev: "上一页",
-      next: "下一页"
     },
     editor: {
       header: {
