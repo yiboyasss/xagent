@@ -57,7 +57,16 @@ from ...core.tools.core.RAG_tools.pipelines.web_ingestion import run_web_ingesti
 from ...core.tools.core.RAG_tools.progress import get_progress_manager
 from ...providers.vector_store.lancedb import get_connection_from_env
 from ..auth_dependencies import get_current_user
-from ..config import MAX_FILE_SIZE, get_upload_path, is_allowed_file
+from ..config import (
+    MAX_FILE_SIZE,
+    UPLOADS_DIR,
+    get_upload_path,
+    is_allowed_file,
+    sanitize_path_component,
+)
+from ..kb_physical_sync import collection_physical_lock, move_collection_dir_to_trash
+from ..models.database import get_db
+from ..models.uploaded_file import UploadedFile
 from ..models.user import User
 from .cloud_storage import get_google_credentials
 
@@ -508,8 +517,6 @@ async def ingest_cloud(
 
     # Run all file processings concurrently
     results = await asyncio.gather(*[process_file(f) for f in request.files])
-
-    return results
 
     return results
 
