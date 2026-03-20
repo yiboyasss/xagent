@@ -95,7 +95,7 @@ async def save_collection_config(
     )
     from ...providers.vector_store.lancedb import get_connection_from_env
 
-    def _save_config():
+    def _save_config() -> None:
         conn = get_connection_from_env()
         ensure_collection_config_table(conn)
         table = conn.open_table("collection_config")
