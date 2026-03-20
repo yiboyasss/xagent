@@ -18,6 +18,7 @@ const zh = {
     taskPaused: "任务已暂停",
     noData: "暂无数据",
     refresh: "刷新",
+    noOptions: "暂无选项",
     errors: {
       unknown: "未知错误",
     },
@@ -1360,6 +1361,57 @@ Build when you need.`
       tabs: {
         file: "文件上传",
         web: "网站导入",
+        cloud: "云连接",
+      },
+      cloudConnect: {
+        title: "云连接",
+        description: "连接您的首选云存储以自动同步文档",
+        googleDrive: "Google Drive",
+        dropbox: "Dropbox",
+        sharePoint: "SharePoint",
+        oneDrive: "OneDrive",
+        connected: "已成功连接到 {provider}",
+        connectionFailed: "连接云提供商失败",
+        connecting: "正在连接...",
+        auth: {
+          title: "连接到 {provider}",
+          selectAccount: "选择已连接账户",
+          addAccount: "+ 添加账户",
+          expired: "会话已过期",
+          defaultProvider: "云提供商",
+          accountLabel: "账户 {id}",
+          accountProviderLabel: "{email} - {provider}",
+          success: "连接成功",
+        },
+        error: {
+          fetchFailed: "加载文件失败",
+        },
+        search: {
+          placeholder: "搜索",
+        },
+        loading: "加载中...",
+        fileList: {
+          noMatchingFiles: "未找到匹配的文件",
+          noFiles: "暂无文件",
+          headers: {
+            folders: "文件夹",
+            files: "文件",
+          },
+        },
+        selectedFiles: {
+          title: "已选文件",
+          empty: "未选择文件",
+          clearAll: "清除全部",
+        },
+        select: {
+          driveLabel: "选择硬盘",
+          folderLabel: "选择文件/文件夹",
+          selectedCount: "已选择 {count} 个文件",
+          confirm: "确认选择",
+          cancel: "取消",
+          accountPlaceholder: "选择账户",
+          drivePlaceholder: "选择硬盘",
+        },
       },
       fileUpload: {
         title: "文档上传",

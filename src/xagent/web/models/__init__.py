@@ -10,6 +10,7 @@ from .text2sql import Text2SQLDatabase
 from .tool_config import ToolConfig, ToolUsage
 from .uploaded_file import UploadedFile
 from .user import User, UserDefaultModel, UserModel
+from .user_oauth import UserOAuth
 
 __all__ = [
     "Base",
@@ -19,6 +20,7 @@ __all__ = [
     "User",
     "UserModel",
     "UserDefaultModel",
+    "UserOAuth",
     "Model",
     "MCPServer",
     "UserMCPServer",

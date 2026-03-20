@@ -18,6 +18,7 @@ const en = {
     taskPaused: "Task Paused",
     noData: "No Data",
     refresh: "Refresh",
+    noOptions: "No options available",
     errors: {
       unknown: "Unknown error",
     },
@@ -1360,6 +1361,57 @@ Build when you need.`
       tabs: {
         file: "File Upload",
         web: "Website Import",
+        cloud: "Cloud Connect",
+      },
+      cloudConnect: {
+        title: "Cloud Connect",
+        description: "Connect your preferred cloud storage to automatically sync documents",
+        googleDrive: "Google Drive",
+        dropbox: "Dropbox",
+        sharePoint: "SharePoint",
+        oneDrive: "OneDrive",
+        connected: "Successfully connected to {provider}",
+        connectionFailed: "Failed to connect to cloud provider",
+        connecting: "Connecting...",
+        auth: {
+          title: "Connect to {provider}",
+          selectAccount: "Select connected account",
+          addAccount: "+ Add Account",
+          expired: "Session expired",
+          defaultProvider: "Cloud Provider",
+          accountLabel: "Account {id}",
+          accountProviderLabel: "{email} - {provider}",
+          success: "Connected successfully",
+        },
+        error: {
+          fetchFailed: "Failed to load files",
+        },
+        search: {
+          placeholder: "Search",
+        },
+        loading: "Loading...",
+        fileList: {
+          noMatchingFiles: "No matching files found",
+          noFiles: "No files found",
+          headers: {
+            folders: "Folders",
+            files: "Files",
+          },
+        },
+        selectedFiles: {
+          title: "Selected Files",
+          empty: "No files selected",
+          clearAll: "Clear All",
+        },
+        select: {
+          driveLabel: "Select Drive",
+          folderLabel: "Select Folder/Files",
+          selectedCount: "{count} files selected",
+          confirm: "Confirm Selection",
+          cancel: "Cancel",
+          accountPlaceholder: "Select Account",
+          drivePlaceholder: "Select Drive",
+        },
       },
       fileUpload: {
         title: "Document Upload",

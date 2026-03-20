@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { ChevronDown, Check } from "lucide-react"
+import { useI18n } from "@/contexts/i18n-context"
 
 export interface SelectOption {
   value: string
@@ -24,6 +25,7 @@ interface SelectProps {
 }
 
 export function Select({ value, onValueChange, options = [], placeholder, className, disabled }: SelectProps) {
+  const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const [dropdownDirection, setDropdownDirection] = useState<'down' | 'up'>('down')
   const buttonRef = useRef<HTMLDivElement>(null)
@@ -119,7 +121,7 @@ export function Select({ value, onValueChange, options = [], placeholder, classN
         )}>
           <div className="max-h-60 overflow-auto">
             {options.length === 0 ? (
-              <div className="px-3 py-2 text-sm text-muted-foreground">No options available</div>
+              <div className="px-3 py-2 text-sm text-muted-foreground">{t("common.noOptions")}</div>
             ) : (
               options.map((option) => (
                 <button

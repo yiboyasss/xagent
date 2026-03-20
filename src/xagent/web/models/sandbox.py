@@ -7,7 +7,7 @@ from sqlalchemy import Column, DateTime, Integer, String, Text, UniqueConstraint
 from .database import Base
 
 
-class SandboxInfo(Base):  # type: ignore[misc, valid-type]
+class SandboxInfo(Base):  # type: ignore[no-any-unimported]
     """Database model for sandbox information."""
 
     __tablename__ = "sandbox_info"
