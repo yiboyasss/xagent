@@ -11,7 +11,7 @@ import { ChatInput } from "@/components/chat/ChatInput"
 import { ChatMessage } from "@/components/chat/ChatMessage"
 import { apiRequest } from "@/lib/api-wrapper"
 import { getApiUrl, getWsUrl } from "@/lib/utils"
-import { PlusCircle, MessageSquare, Upload, Download, Settings2, Check, Zap, BookOpen, ChevronLeft, Sparkles, Loader2, AlertTriangle } from "lucide-react"
+import { PlusCircle, MessageSquare, Upload, Download, Settings2, Check, Zap, BookOpen, ChevronLeft, Sparkles, Loader2 } from "lucide-react"
 import { useI18n } from "@/contexts/i18n-context"
 import { useAuth } from "@/contexts/auth-context"
 import { FileAttachment } from "@/components/file-attachment"
@@ -139,9 +139,6 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
   // Create Success Dialog State
   const [showSuccessDialog, setShowSuccessDialog] = useState(false)
   const [createdAgent, setCreatedAgent] = useState<any>(null)
-
-  // Knowledge-base tool validation dialog
-  const [showKbToolWarning, setShowKbToolWarning] = useState(false)
 
   // Data State
   const [models, setModels] = useState<Model[]>([])
@@ -735,9 +732,10 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
       return
     }
 
-    if (selectedKbs.length > 0 && !selectedToolCategories.includes("knowledge")) {
-      setShowKbToolWarning(true)
-      return
+    let finalToolCategories = [...selectedToolCategories]
+    if (selectedKbs.length > 0 && !finalToolCategories.includes("knowledge")) {
+      finalToolCategories.push("knowledge")
+      setSelectedToolCategories(finalToolCategories)
     }
 
     setIsCreating(true)
@@ -769,7 +767,7 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
           models: modelConfig,
           knowledge_bases: selectedKbs,
           skills: selectedSkills,
-          tool_categories: selectedToolCategories,
+          tool_categories: finalToolCategories,
           logo_base64,
         }),
       })
@@ -798,7 +796,7 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
             models: modelConfig,
             knowledge_bases: selectedKbs,
             skills: selectedSkills,
-            tool_categories: selectedToolCategories,
+            tool_categories: finalToolCategories,
           })
           setLogoFile(null)
           // Optional: Reload agent to get updated logo URL if needed, but avoiding it keeps it fast
@@ -1208,7 +1206,12 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
 
           <MultiSelect
             values={selectedKbs}
-            onValuesChange={setSelectedKbs}
+            onValuesChange={(newValues) => {
+              setSelectedKbs(newValues)
+              if (newValues.length > 0 && !selectedToolCategories.includes("knowledge")) {
+                setSelectedToolCategories(prev => [...prev, "knowledge"])
+              }
+            }}
             options={kbOptions}
             placeholder={t("builds.configForm.knowledgeBase.placeholder")}
           />
@@ -1478,40 +1481,6 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
           </div>
         </SheetContent>
       </Sheet>
-
-      {/* Knowledge Base Tool Warning Dialog */}
-      <Dialog open={showKbToolWarning} onOpenChange={setShowKbToolWarning}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
-              {t("builds.editor.kbToolWarning.title")}
-            </DialogTitle>
-            <DialogDescription>
-              {t("builds.editor.kbToolWarning.description")}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-3 text-sm text-amber-800 dark:text-amber-200">
-            {t("builds.editor.kbToolWarning.hint")}
-          </div>
-          <DialogFooter className="gap-2 sm:justify-end">
-            <div className="flex w-full sm:w-auto gap-2 justify-end">
-              <Button variant="outline" onClick={() => setShowKbToolWarning(false)}>
-                {t("builds.editor.kbToolWarning.cancel")}
-              </Button>
-              <Button onClick={() => {
-                setSelectedToolCategories(prev =>
-                  prev.includes("knowledge") ? prev : [...prev, "knowledge"]
-                )
-                setShowKbToolWarning(false)
-                toast.success(t("builds.editor.kbToolWarning.enabled"))
-              }}>
-                {t("builds.editor.kbToolWarning.enableAndContinue")}
-              </Button>
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Success Dialog */}
       <Dialog open={showSuccessDialog} onOpenChange={handleDialogClose}>
