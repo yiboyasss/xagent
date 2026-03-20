@@ -1,9 +1,9 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import { SearchInput } from "@/components/ui/search-input"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Search, Plus, Bot, Trash2, MessageSquare, Edit, MoreVertical, Globe, Calendar, Clock } from "lucide-react"
+import { Plus, Bot, Trash2, MessageSquare, Edit, MoreVertical, Globe, Calendar, Clock } from "lucide-react"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { useI18n } from "@/contexts/i18n-context"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -122,15 +122,12 @@ export default function BuildsPage() {
           <p className="text-muted-foreground">{t("builds.list.header.description")}</p>
         </div>
         <div className="flex items-center gap-4">
-          <div className="relative w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder={t("builds.list.search.placeholder")}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
-            />
-          </div>
+          <SearchInput
+            placeholder={t("builds.list.search.placeholder")}
+            value={searchTerm}
+            onChange={setSearchTerm}
+            containerClassName="w-64"
+          />
           <Button onClick={handleCreate}>
             <Plus className="mr-2 h-4 w-4" />
             {t("builds.list.header.create")}

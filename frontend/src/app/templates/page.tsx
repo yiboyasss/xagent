@@ -2,17 +2,15 @@
 
 import { useI18n } from "@/contexts/i18n-context";
 import {
-  Search,
   Play,
   Heart,
   Loader2,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
+import { cn, getApiUrl } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api-wrapper";
-import { getApiUrl } from "@/lib/utils";
+import { SearchInput } from "@/components/ui/search-input";
 import type { Template } from "@/types/template";
 
 // Category section types
@@ -204,15 +202,13 @@ export default function TemplatesPage() {
           <h1 className="text-3xl font-bold mb-1">{t("templates.title")}</h1>
           <p className="text-muted-foreground">{t("templates.subtitle")}</p>
         </div>
-        <div className="relative w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder={t("templates.searchPlaceholder")}
-            className="pl-9 bg-secondary/50 border-border/50 focus:bg-background transition-all"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
+        <SearchInput
+          placeholder={t("templates.searchPlaceholder")}
+          value={searchQuery}
+          onChange={setSearchQuery}
+          containerClassName="w-72"
+          className="bg-secondary/50 border-border/50 focus:bg-background transition-all"
+        />
       </div>
 
       {/* Category Filter */}

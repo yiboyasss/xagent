@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { SearchInput } from "@/components/ui/search-input"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { getApiUrl } from "@/lib/utils"
@@ -11,7 +11,6 @@ import { useI18n } from "@/contexts/i18n-context"
 import { apiRequest } from "@/lib/api-wrapper"
 import {
   Plus,
-  Search,
   FileText,
   FolderOpen,
   HardDrive
@@ -102,15 +101,12 @@ export function KnowledgeBasePage() {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder={t("kb.search.placeholder")}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+            <SearchInput
+              placeholder={t("kb.search.placeholder")}
+              value={searchQuery}
+              onChange={setSearchQuery}
+              containerClassName="w-64"
+            />
             <Button onClick={() => { setIsCreateDialogOpen(true) }} className="flex items-center gap-2">
               <Plus size={16} className="mr-2" />
               {t("kb.header.new")}

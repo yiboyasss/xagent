@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { SearchInput } from "@/components/ui/search-input"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import {
   Dialog,
@@ -403,15 +404,12 @@ export default function ToolsPage() {
           <p className="text-muted-foreground">{t('tools.header.description')}</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder={t('tools.list.searchPlaceholder')}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 w-64 bg-background"
-            />
-          </div>
+          <SearchInput
+            placeholder={t('tools.list.searchPlaceholder')}
+            value={searchQuery}
+            onChange={setSearchQuery}
+            className="w-64 bg-background"
+          />
           <Dialog open={isMcpDialogOpen} onOpenChange={setIsMcpDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={handleAddMcpServer}>

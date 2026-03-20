@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -10,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { SearchInput } from "@/components/ui/search-input"
 import { Badge } from "@/components/ui/badge"
 import { getApiUrl } from "@/lib/utils"
 import { apiRequest } from "@/lib/api-wrapper"
@@ -19,17 +19,10 @@ import { cn } from "@/lib/utils"
 import {
   Database,
   Plus,
-  Search,
-  Filter,
   Edit,
   Trash2,
-  Calendar,
-  Tag,
-  Folder,
-  BarChart3,
   Save,
   X,
-  ArrowLeft,
   Globe,
   User,
   Wrench,
@@ -67,7 +60,6 @@ interface MemoryFilters {
 }
 
 export function MemoryPage() {
-  const { token } = useAuth()
   const { t, locale } = useI18n()
   const [memories, setMemories] = useState<MemoryItem[]>([])
   const [stats, setStats] = useState<MemoryStats | null>(null)
@@ -96,8 +88,6 @@ export function MemoryPage() {
   })
 
   const [categories, setCategories] = useState<string[]>([])
-  const [allTags, setAllTags] = useState<string[]>([])
-  const [allKeywords, setAllKeywords] = useState<string[]>([])
 
   // Search debouncing
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -111,8 +101,7 @@ export function MemoryPage() {
     }, 500)
   }, [])
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
+  const handleSearchChange = (value: string) => {
     setSearchInput(value)
     if (!isComposingRef.current) debouncedSearch(value)
   }
@@ -232,8 +221,6 @@ export function MemoryPage() {
       ))
 
       setCategories(uniqueCategories)
-      setAllTags(uniqueTags)
-      setAllKeywords(uniqueKeywords as string[])
 
     } catch (err) {
       setError(err instanceof Error ? err.message : t("memory.errors.unknown"))
@@ -360,18 +347,16 @@ export function MemoryPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="relative w-64 hidden sm:block">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder={t("memory.filters.search.placeholder")}
-              className="pl-9 h-9"
-              value={searchInput}
-              onChange={handleSearchChange}
-              onCompositionStart={handleCompositionStart}
-              onCompositionEnd={handleCompositionEnd}
-            />
-          </div>
+          <SearchInput
+            type="search"
+            placeholder={t("memory.filters.search.placeholder")}
+            className="h-9"
+            containerClassName="w-64 hidden sm:block"
+            value={searchInput}
+            onChange={handleSearchChange}
+            onCompositionStart={handleCompositionStart}
+            onCompositionEnd={handleCompositionEnd}
+          />
 
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>

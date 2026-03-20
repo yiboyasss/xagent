@@ -8,6 +8,7 @@ import { getApiUrl } from "@/lib/utils"
 import { apiRequest } from "@/lib/api-wrapper"
 import { useI18n } from "@/contexts/i18n-context"
 import { StandaloneFilePreviewDialog } from "@/components/standalone-file-preview-dialog"
+import { SearchInput } from "@/components/ui/search-input"
 import {
   Upload,
   FileText,
@@ -334,15 +335,13 @@ export function FilesPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="relative w-64">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder={t('files.search.placeholder')}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-9 bg-background"
-            />
-          </div>
+          <SearchInput
+            placeholder={t('files.search.placeholder')}
+            value={searchQuery}
+            onChange={setSearchQuery}
+            containerClassName="w-64"
+            className="h-9 bg-background"
+          />
 
           <input
             ref={fileInputRef}
