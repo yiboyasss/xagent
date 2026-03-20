@@ -56,7 +56,7 @@ interface WebIngestionResult {
 interface KnowledgeBaseCreationDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSuccess?: () => void
+  onSuccess?: (collectionNames?: string[]) => void
 }
 
 export function KnowledgeBaseCreationDialog({ open, onOpenChange, onSuccess }: KnowledgeBaseCreationDialogProps) {
@@ -249,6 +249,8 @@ export function KnowledgeBaseCreationDialog({ open, onOpenChange, onSuccess }: K
     setUploadProgress(0)
     setIngestionResults([])
 
+    const successfulCollections: string[] = []
+
     try {
       for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i]
@@ -281,15 +283,19 @@ export function KnowledgeBaseCreationDialog({ open, onOpenChange, onSuccess }: K
           throw new Error(result.message || t("kb.errors.failedAtStep", { step: result.failed_step }))
         }
 
+        successfulCollections.push(collectionName)
         setUploadProgress(((i + 1) / selectedFiles.length) * 100)
       }
 
       resetState()
       onOpenChange(false)
-      onSuccess?.()
+      onSuccess?.(successfulCollections)
 
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("kb.errors.uploadFailed"))
+      if (successfulCollections.length > 0) {
+        onSuccess?.(successfulCollections)
+      }
     } finally {
       setIsUploading(false)
     }
@@ -358,7 +364,7 @@ export function KnowledgeBaseCreationDialog({ open, onOpenChange, onSuccess }: K
 
       resetState()
       onOpenChange(false)
-      onSuccess?.()
+      onSuccess?.([collectionName])
 
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("kb.errors.webIngestFailed"))

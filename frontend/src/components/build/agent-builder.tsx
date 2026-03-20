@@ -1194,7 +1194,7 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
               <InfoTooltip content={t("builds.configForm.model.tips.knowledgeBase")} />
             </div>
             <Button
-              variant="secondary"
+              variant="ghost"
               size="sm"
               className="text-muted-foreground"
               onClick={() => setIsKbModalOpen(true)}
@@ -1507,8 +1507,17 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
       <KnowledgeBaseCreationDialog
         open={isKbModalOpen}
         onOpenChange={setIsKbModalOpen}
-        onSuccess={() => {
+        onSuccess={(createdCollections) => {
           refreshKbs()
+          if (createdCollections && createdCollections.length > 0) {
+            setSelectedKbs(prev => {
+              const newKbs = Array.from(new Set([...prev, ...createdCollections]))
+              return newKbs
+            })
+            if (!selectedToolCategories.includes("knowledge")) {
+              setSelectedToolCategories(prev => [...prev, "knowledge"])
+            }
+          }
         }}
       />
     </div>
