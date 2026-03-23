@@ -415,7 +415,7 @@ def get_vision_model(db: Session, user_id: Optional[int] = None) -> Optional[Bas
         Vision model instance or None if not found
     """
     try:
-        from sqlalchemy import or_
+        from sqlalchemy import String, cast, or_
 
         from ..models.model import Model as DBModel
         from .llm_utils import _create_llm_instance
@@ -427,8 +427,8 @@ def get_vision_model(db: Session, user_id: Optional[int] = None) -> Optional[Bas
                 DBModel.category == "llm",
                 DBModel.is_active,
                 or_(
-                    DBModel.abilities.contains(["vision"]),
-                    DBModel.abilities.like('%"vision"%'),
+                    cast(DBModel.abilities, String).contains('"vision"'),
+                    cast(DBModel.abilities, String).like('%"vision"%'),
                 ),
             )
             .first()
@@ -571,6 +571,8 @@ def get_default_image_generate_model(
         The default image generation model or None if not available
     """
     try:
+        from sqlalchemy import String, cast
+
         from ...core.model.image.adapter import get_image_model_instance
         from ..models.database import get_db
         from ..models.model import Model as DBModel
@@ -589,7 +591,7 @@ def get_default_image_generate_model(
                         UserDefaultModel.user_id == user_id,
                         UserDefaultModel.config_type == "image",
                         UserModel.user_id == user_id,
-                        DBModel.abilities.contains("generate"),
+                        cast(DBModel.abilities, String).contains('"generate"'),
                     )
                     .first()
                 )
@@ -611,7 +613,7 @@ def get_default_image_generate_model(
                     UserDefaultModel.user_id.in_(
                         db.query(User.id).filter(User.is_admin)
                     ),
-                    DBModel.abilities.contains("generate"),
+                    cast(DBModel.abilities, String).contains('"generate"'),
                 )
                 .limit(1)
                 .all()
@@ -631,7 +633,7 @@ def get_default_image_generate_model(
                 .filter(
                     UserDefaultModel.config_type == "image",
                     UserModel.is_shared,
-                    DBModel.abilities.contains("generate"),
+                    cast(DBModel.abilities, String).contains('"generate"'),
                 )
                 .limit(1)
                 .all()
@@ -827,6 +829,8 @@ def _get_models_by_category(
     """
     models: dict[str, Any] = {}
     try:
+        from sqlalchemy import String, cast
+
         from ..models.model import Model as DBModel
 
         db_models = (
@@ -834,7 +838,7 @@ def _get_models_by_category(
             .filter(
                 DBModel.category == "speech",
                 DBModel.is_active,
-                DBModel.abilities.contains(ability),
+                cast(DBModel.abilities, String).contains(f'"{ability}"'),
             )
             .all()
         )
