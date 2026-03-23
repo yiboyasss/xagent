@@ -1512,6 +1512,7 @@ Build when you need.`
       embeddingBatchSize: "批处理大小",
       startImport: "开始导入",
       saveConfig: "保存配置",
+      savingConfig: "正在保存配置...",
     },
     detail: {
       viewingDetails: "正在查看知识库 {name} 的详情",

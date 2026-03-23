@@ -1512,6 +1512,7 @@ Build when you need.`
       embeddingBatchSize: "Batch Size",
       startImport: "Start Import",
       saveConfig: "Save Configuration",
+      savingConfig: "Saving configuration...",
     },
     detail: {
       viewingDetails: "Viewing details for {name}",
