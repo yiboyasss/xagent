@@ -5,7 +5,7 @@ import { Bot, Presentation, BarChart, Image as ImageIcon, Zap } from "lucide-rea
 import { useI18n } from "@/contexts/i18n-context";
 import { useApp } from "@/contexts/app-context-chat";
 import { ChatStartScreen } from "@/components/chat/ChatStartScreen";
-import { FilePreviewDialog } from "@/components/file-preview-dialog";
+import { FilePreviewDialog } from "@/components/file/file-preview-dialog";
 
 function TaskHomePageContent() {
   const { t } = useI18n();
