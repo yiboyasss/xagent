@@ -7,7 +7,7 @@ import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from ...core.agent.service import AgentService
@@ -1944,6 +1944,45 @@ async def get_task_status(
         raise
     except Exception as e:
         logger.error(f"Get task status failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@chat_router.put("/task/{task_id}")
+async def update_task(
+    task_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Update task details."""
+    try:
+        data = await request.json()
+        title = data.get("title")
+
+        if not title:
+            raise HTTPException(status_code=400, detail="Title is required")
+
+        # Verify task exists and belongs to user
+        if user.is_admin:
+            task = db.query(Task).filter(Task.id == task_id).first()
+        else:
+            task = (
+                db.query(Task)
+                .filter(Task.id == task_id, Task.user_id == user.id)
+                .first()
+            )
+
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
+
+        task.title = title
+        db.commit()
+
+        return {"status": "success", "message": "Task updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to update task {task_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

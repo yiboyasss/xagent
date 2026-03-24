@@ -42,12 +42,15 @@ import {
   Tag,
   Github,
   Star,
+  MoreHorizontal,
+  Edit2,
 } from "lucide-react"
 import {
   Dialog,
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 
 import { useI18n } from "@/contexts/i18n-context"
 
@@ -227,7 +230,7 @@ export function Sidebar({ className }: SidebarProps) {
       })
 
       if (response.ok) {
-        setTasks(prev => prev.filter(task => task.task_id !== taskId))
+        setTasks(prev => prev.filter(task => String(task.task_id) !== String(taskId)))
 
         // Clean up refs and state
         taskStatusRef.current.delete(String(taskId))
@@ -238,13 +241,56 @@ export function Sidebar({ className }: SidebarProps) {
           return next
         })
 
-        if (Number(getCurrentTaskId()) === Number(taskId)) {
+        if (String(getCurrentTaskId()) === String(taskId)) {
           router.push('/task')
         }
       }
     } catch (error) {
       console.error('Failed to delete task:', error)
     }
+  }
+
+  const startRenaming = (task: Task) => {
+    setEditingTaskId(String(task.task_id))
+    setEditingTitle(task.title || "Untitled Task")
+  }
+
+  const submitRename = async (taskId: string) => {
+    const trimmedTitle = editingTitle.trim()
+    const task = tasks.find(t => String(t.task_id) === String(taskId))
+
+    // Do not call API if title is empty or unchanged
+    if (!trimmedTitle || (task && task.title === trimmedTitle)) {
+      setEditingTaskId(null)
+      return
+    }
+
+    try {
+      const response = await apiRequest(`${getApiUrl()}/api/chat/task/${taskId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ title: trimmedTitle })
+      })
+
+      if (response.ok) {
+        setTasks(prev => prev.map(t =>
+          String(t.task_id) === String(taskId)
+            ? { ...t, title: trimmedTitle }
+            : t
+        ))
+      }
+    } catch (error) {
+      console.error('Failed to rename task:', error)
+    } finally {
+      setEditingTaskId(null)
+    }
+  }
+
+  const cancelRename = () => {
+    setEditingTaskId(null)
+    setEditingTitle("")
   }
 
   const [isExpanded, setIsExpanded] = useState(false)
@@ -302,6 +348,10 @@ export function Sidebar({ className }: SidebarProps) {
   const searchRef = useRef("")
   const [isSearchFocused, setIsSearchFocused] = useState(false)
   const [isSearchHovered, setIsSearchHovered] = useState(false)
+
+  // Rename state
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
+  const [editingTitle, setEditingTitle] = useState("")
 
   // Loading state ref for polling interval
   const loadingRef = useRef({ isLoadingTasks, isLoadingMore })
@@ -787,17 +837,58 @@ export function Sidebar({ className }: SidebarProps) {
                             {task.status === 'pending' && <Loader2 className="h-4 w-4 animate-spin text-gray-400" />}
                           </div>
                         </div>
-                        <span className="truncate flex-1 text-left">{task.title || "Untitled Task"}</span>
+                        {editingTaskId === String(task.task_id) ? (
+                          <div className="flex-1 mr-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                            <input
+                              type="text"
+                              value={editingTitle}
+                              onChange={(e) => setEditingTitle(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') submitRename(String(task.task_id));
+                                if (e.key === 'Escape') cancelRename();
+                              }}
+                              onBlur={() => submitRename(String(task.task_id))}
+                              autoFocus
+                              className="w-full bg-transparent border-b border-primary outline-none text-sm text-foreground"
+                            />
+                          </div>
+                        ) : (
+                          <span className="truncate flex-1 text-left">{task.title || "Untitled Task"}</span>
+                        )}
                         {unreadTasks.has(String(task.task_id)) && (
                           <div className="absolute right-4 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-primary group-hover:opacity-0 transition-opacity" />
                         )}
-                        <button
-                          onClick={(e) => deleteTask(task.task_id, e)}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 text-muted-foreground hover:text-red-500 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700"
-                          title={t('common.delete')}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <MoreHorizontal className="text-muted-foreground/60 h-4 w-4 hover:text-foreground" />
+                            </PopoverTrigger>
+                            <PopoverContent align="end" className="w-32 p-1" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                              <div className="flex flex-col">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startRenaming(task);
+                                  }}
+                                  className="flex w-full items-center px-2 py-1.5 text-sm hover:bg-accent rounded-sm transition-colors text-left"
+                                >
+                                  <Edit2 className="h-3.5 w-3.5 mr-2" />
+                                  {t('common.rename')}
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteTask(String(task.task_id), e);
+                                  }}
+                                  className="flex w-full items-center px-2 py-1.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-sm transition-colors text-left"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5 mr-2" />
+                                  {t('common.delete')}
+                                </button>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
                       </Link>
                   )})}
                   {isLoadingMore && (

@@ -23,6 +23,7 @@ const zh = {
     expand: "展开",
     collapse: "收起",
     noOptions: "暂无选项",
+    rename: "重命名",
     errors: {
       unknown: "未知错误",
     },

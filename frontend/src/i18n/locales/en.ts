@@ -23,6 +23,7 @@ const en = {
     expand: "Expand",
     collapse: "Collapse",
     noOptions: "No options available",
+    rename: "Rename",
     errors: {
       unknown: "Unknown error",
     },
