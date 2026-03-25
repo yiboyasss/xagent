@@ -1768,18 +1768,21 @@ Build when you need.`
         create: "Create New Knowledge Base",
         noData: "No Knowledge Base available",
         selected: "{count} selected",
+        selectAll: "Select All",
       },
       skills: {
         label: "Skills",
         placeholder: "Select Skills",
         create: "Create New Skill",
         noData: "No Skills available",
+        selectAll: "Select All",
       },
       tools: {
         label: "Tools",
         placeholder: "Select Tool Categories",
         noData: "No tools available",
         selectedCount: "{count} categories selected ({tools} tools)",
+        selectAll: "Select All",
         categories: {
           basic: "Basic Tools",
           file: "File Operations",

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ChatInput } from "@/components/chat/ChatInput"
 import { ChatMessage } from "@/components/chat/ChatMessage"
@@ -1199,11 +1200,34 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
             <div className="flex items-center gap-1.5">
               <Label>{t("builds.configForm.knowledgeBase.label")}</Label>
               <InfoTooltip content={t("builds.configForm.model.tips.knowledgeBase")} />
+              {kbs.length > 0 && (
+                <div className="ml-2 flex items-center gap-1.5 border-l pl-2 border-border">
+                  <Switch
+                    id="selectAllKbs"
+                    checked={selectedKbs.length === kbOptions.length && kbOptions.length > 0}
+                    onCheckedChange={(checked: boolean) => {
+                      if (checked) {
+                        const allValues = kbOptions.map((item) => item.value)
+                        setSelectedKbs(allValues)
+                        if (!selectedToolCategories.includes("knowledge")) {
+                          setSelectedToolCategories(prev => [...prev, "knowledge"])
+                        }
+                      } else {
+                        setSelectedKbs([])
+                      }
+                    }}
+                    className="scale-75"
+                  />
+                  <Label htmlFor="selectAllKbs" className="text-xs text-muted-foreground cursor-pointer">
+                    {t("builds.configForm.knowledgeBase.selectAll")}
+                  </Label>
+                </div>
+              )}
             </div>
             <Button
               variant="ghost"
               size="sm"
-              className="text-muted-foreground"
+              className="h-6 text-xs text-muted-foreground hover:text-foreground"
               onClick={() => setIsKbModalOpen(true)}
             >
               <PlusCircle className="mr-2 h-4 w-4" />
@@ -1229,6 +1253,26 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
           <div className="flex items-center gap-1.5">
             <Label>{t("builds.configForm.skills.label")}</Label>
             <InfoTooltip content={t("builds.configForm.model.tips.skills")} />
+            {skills.length > 0 && (
+              <div className="ml-2 flex items-center gap-1.5 border-l pl-2 border-border">
+                <Switch
+                  id="selectAllSkills"
+                  checked={selectedSkills.length === skillOptions.length && skillOptions.length > 0}
+                  onCheckedChange={(checked: boolean) => {
+                    if (checked) {
+                      const allValues = skillOptions.map((item: any) => item.value)
+                      setSelectedSkills(allValues)
+                    } else {
+                      setSelectedSkills([])
+                    }
+                  }}
+                  className="scale-75"
+                />
+                <Label htmlFor="selectAllSkills" className="text-xs text-muted-foreground cursor-pointer">
+                  {t("builds.configForm.skills.selectAll")}
+                </Label>
+              </div>
+            )}
           </div>
           {skills.length > 0 ? (
             <MultiSelect
@@ -1249,6 +1293,26 @@ export function AgentBuilder({ agentId }: AgentBuilderProps) {
           <div className="flex items-center gap-1.5">
             <Label>{t("builds.configForm.tools.label")}</Label>
             <InfoTooltip content={t("builds.configForm.model.tips.tools")} />
+            {toolCategories.length > 0 && (
+              <div className="ml-2 flex items-center gap-1.5 border-l pl-2 border-border">
+                <Switch
+                  id="selectAllTools"
+                  checked={selectedToolCategories.length === toolCategoryOptions.length && toolCategoryOptions.length > 0}
+                  onCheckedChange={(checked: boolean) => {
+                    if (checked) {
+                      const allValues = toolCategoryOptions.map((item: any) => item.value)
+                      setSelectedToolCategories(allValues)
+                    } else {
+                      setSelectedToolCategories([])
+                    }
+                  }}
+                  className="scale-75"
+                />
+                <Label htmlFor="selectAllTools" className="text-xs text-muted-foreground cursor-pointer">
+                  {t("builds.configForm.tools.selectAll")}
+                </Label>
+              </div>
+            )}
           </div>
           {toolCategories.length > 0 ? (
             <MultiSelect
