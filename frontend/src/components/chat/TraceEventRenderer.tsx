@@ -6,11 +6,9 @@ import {
   ChevronRight,
   ChevronDown,
   Wrench,
-  Terminal,
   Cpu,
   Info,
   Copy,
-  Maximize2,
   Search,
   FileText,
   Check
@@ -401,7 +399,7 @@ const ToolOutputDisplay = ({ action, isRunning, t }: { action: StepAction, isRun
                     <span>{t('traceEventRenderer.output')}</span>
                     <CopyButton text={typeof action.data.output === 'string' ? action.data.output : JSON.stringify(action.data.output, null, 2)} />
                 </div>
-                <div className="p-3 bg-muted/30 border border-border/50 rounded-xl text-[10px] sm:text-xs font-mono overflow-x-auto max-h-[300px] overflow-y-auto text-foreground/80 whitespace-pre-wrap">
+                <div className="p-3 bg-muted/30 border border-border/50 rounded-xl text-[10px] sm:text-xs font-mono overflow-x-auto text-foreground/80 whitespace-pre-wrap break-all">
                     {typeof action.data.output === 'string' ? action.data.output : JSON.stringify(action.data.output, null, 2)}
                 </div>
             </div>
@@ -419,7 +417,7 @@ const ToolOutputDisplay = ({ action, isRunning, t }: { action: StepAction, isRun
 const ToolErrorDisplay = ({ action, t }: { action: StepAction, t: any }) => {
     if (action.status === 'failed' && action.data.error) {
         return (
-            <div className="mb-2 mt-2 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 whitespace-pre-wrap text-xs">
+            <div className="mb-2 mt-2 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 whitespace-pre-wrap break-all text-xs">
                 <span className="font-semibold">{t('traceEventRenderer.errorLabel')}</span> {String(action.data.error)}
             </div>
         );
@@ -429,31 +427,28 @@ const ToolErrorDisplay = ({ action, t }: { action: StepAction, t: any }) => {
 
 const PythonToolRenderer = ({ action, onOpenTerminal, isRunning, t }: any) => {
     const code = action.data.code;
+    const filePath = action.data.args?.file_path;
     return (
         <div className="pt-2">
             {code !== undefined && (
                 <div className="flex flex-col gap-1.5">
+                    {filePath && (
+                        <div className="mb-1 flex">
+                            <span className="inline-flex px-2 py-1 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-md font-mono text-[11px] items-center gap-1.5 border border-blue-500/20">
+                                <FileText className="w-3.5 h-3.5" />
+                                {filePath}
+                            </span>
+                        </div>
+                    )}
                     <div className="text-xs text-muted-foreground px-1 flex justify-between items-center">
                         <div className="flex items-center gap-2">
                             <span>{t('traceEventRenderer.code')}</span>
-                            {action.data.args?.file_path && (
-                                <span className="px-1.5 py-0.5 bg-muted rounded-md font-mono text-[10px] border border-border/50">
-                                    {action.data.args.file_path}
-                                </span>
-                            )}
                         </div>
-                        <div className="flex items-center gap-1">
-                           <CopyButton text={code} />
-                           <ActionButton
-                                icon={Maximize2}
-                                onClick={() => onOpenTerminal(code, typeof action.data.output === 'string' ? action.data.output : JSON.stringify(action.data.output ?? ''), action.data.tool || 'python_executor', action.data.args?.file_path)}
-                                title={t('traceEventRenderer.maximize')}
-                            />
-                        </div>
+                        <CopyButton text={code} />
                     </div>
                     <div className="p-3 bg-muted/30 border border-border/50 rounded-xl font-mono text-[10px] sm:text-xs overflow-x-auto relative group">
                         <span className="absolute right-3 top-3 text-[10px] font-bold text-muted-foreground/50 select-none">PYTHON</span>
-                        <pre className="text-foreground/80">{code}</pre>
+                        <pre className="text-foreground/80 whitespace-pre-wrap break-all">{code}</pre>
                     </div>
                 </div>
             )}
@@ -470,16 +465,9 @@ const BashToolRenderer = ({ action, onOpenTerminal, isRunning, t }: any) => {
                 <div className="flex flex-col gap-1.5">
                     <div className="text-xs text-muted-foreground px-1 flex justify-between items-center">
                         <span>{t('traceEventRenderer.command')}</span>
-                        <div className="flex items-center gap-1">
-                           <CopyButton text={command} />
-                           <ActionButton
-                                icon={Maximize2}
-                                onClick={() => onOpenTerminal(command, typeof action.data.output === 'string' ? action.data.output : JSON.stringify(action.data.output ?? ''), action.data.tool || 'bash', undefined)}
-                                title={t('traceEventRenderer.maximize')}
-                            />
-                        </div>
+                        <CopyButton text={command} />
                     </div>
-                    <div className="p-3 bg-muted/30 border border-border/50 rounded-xl font-mono text-[10px] sm:text-xs overflow-x-auto text-foreground/80">
+                    <div className="p-3 bg-muted/30 border border-border/50 rounded-xl font-mono text-[10px] sm:text-xs overflow-x-auto text-foreground/80 whitespace-pre-wrap break-all">
                         <span className="text-green-500/70 mr-2 select-none">$</span>
                         {command}
                     </div>
@@ -501,7 +489,7 @@ const SearchToolRenderer = ({ action, isRunning, t }: any) => {
                 </div>
                 <div className="p-3 bg-muted/30 border border-border/50 rounded-xl text-xs flex items-start gap-2">
                     <Search className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
-                    <span className="italic text-foreground/80">{query}</span>
+                    <span className="italic text-foreground/80 whitespace-pre-wrap break-all">{query}</span>
                 </div>
             </div>
             <ToolOutputDisplay action={action} isRunning={isRunning} t={t} />
@@ -513,44 +501,39 @@ const FileToolRenderer = ({ action, onOpenTerminal, isRunning, t }: any) => {
     const { args, tool } = action.data;
     const filePath = args?.file_path || args?.path;
     const content = args?.content || args?.text || args?.code;
-    const fallbackText = !filePath && !content ? JSON.stringify(args) : undefined;
+    const fallbackText = !content ? JSON.stringify(args, null, 2) : undefined;
 
     return (
         <div className="pt-2">
             <div className="flex flex-col gap-1.5">
+                {filePath && (
+                    <div className="mb-1 flex">
+                        <span
+                            className="inline-flex px-2 py-1 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-md font-mono text-[11px] items-center gap-1.5 border border-blue-500/20 cursor-pointer hover:bg-blue-500/20 transition-colors"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onOpenTerminal(String(content || fallbackText || ''), typeof action.data.output === 'string' ? action.data.output : JSON.stringify(action.data.output ?? ''), tool || 'file_tool', filePath);
+                            }}
+                            title={t('traceEventRenderer.previewFile')}
+                        >
+                            <FileText className="w-3.5 h-3.5" />
+                            {filePath}
+                        </span>
+                    </div>
+                )}
                 <div className="text-xs text-muted-foreground px-1 flex justify-between items-center">
                     <div className="flex items-center gap-2">
                         <span>{content ? (t('traceEventRenderer.content')) : (t('traceEventRenderer.args'))}</span>
-                        {filePath && (
-                            <span
-                                className="px-1.5 py-0.5 bg-muted rounded-md font-mono text-[10px] flex items-center gap-1 border border-border/50 cursor-pointer hover:border-primary/80 transition-colors"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onOpenTerminal(String(content || fallbackText || ''), typeof action.data.output === 'string' ? action.data.output : JSON.stringify(action.data.output ?? ''), tool || 'file_tool', filePath);
-                                }}
-                                title={t('traceEventRenderer.previewFile')}
-                            >
-                                <FileText className="w-3 h-3" />
-                                {filePath}
-                            </span>
-                        )}
                     </div>
                     <div className="flex items-center gap-1">
                        {(content || fallbackText) && <CopyButton text={String(content || fallbackText)} />}
-                       {!filePath && (content || fallbackText) && (
-                           <ActionButton
-                                icon={Maximize2}
-                                onClick={() => onOpenTerminal(String(content || fallbackText || ''), typeof action.data.output === 'string' ? action.data.output : JSON.stringify(action.data.output ?? ''), tool || 'file_tool', filePath)}
-                                title={t('traceEventRenderer.maximize')}
-                            />
-                       )}
                     </div>
                 </div>
-                <div className="p-3 bg-muted/30 border border-border/50 rounded-xl font-mono text-[10px] sm:text-xs overflow-x-auto text-foreground/80">
+                <div className="p-3 bg-muted/30 border border-border/50 rounded-xl font-mono text-[10px] sm:text-xs overflow-x-auto text-foreground/80 whitespace-pre-wrap break-all">
                     {content ? (
-                        <pre className="whitespace-pre-wrap">{String(content)}</pre>
+                        <pre className="whitespace-pre-wrap break-all">{String(content)}</pre>
                     ) : (
-                        <span className="break-all">{fallbackText}</span>
+                        <span className="whitespace-pre-wrap break-all">{fallbackText}</span>
                     )}
                 </div>
             </div>
@@ -568,8 +551,8 @@ const DefaultToolRenderer = ({ action, isRunning, t }: any) => {
                     <span>{t('traceEventRenderer.args')}</span>
                     <CopyButton text={args} />
                 </div>
-                <div className="p-3 bg-muted/30 border border-border/50 rounded-xl font-mono text-[10px] sm:text-xs overflow-x-auto text-foreground/80">
-                    <pre className="whitespace-pre-wrap">{args}</pre>
+                <div className="p-3 bg-muted/30 border border-border/50 rounded-xl font-mono text-[10px] sm:text-xs overflow-x-auto text-foreground/80 whitespace-pre-wrap break-all">
+                    <pre className="whitespace-pre-wrap break-all">{args}</pre>
                 </div>
             </div>
             <ToolOutputDisplay action={action} isRunning={isRunning} t={t} />
@@ -766,7 +749,7 @@ function StepActionItem({ action, onViewDetail, onOpenTerminal, onFileClick }: S
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-             <ScrollArea ref={scrollRef} className="max-h-[200px] w-full mt-1 bg-muted/30 border border-border/50 rounded-md overflow-auto">
+             <ScrollArea ref={scrollRef} className="max-h-[300px] w-full mt-1 bg-muted/30 border border-border/50 rounded-md overflow-auto">
                <div
                  className="p-3 space-y-2 font-mono text-xs cursor-pointer hover:bg-muted/50 transition-colors"
                  onClick={() => onViewDetail(action)}

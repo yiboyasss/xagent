@@ -2508,7 +2508,6 @@ Build when you need.`
     searchQuery: "Search Query",
     content: "Content",
     copy: "Copy",
-    maximize: "Maximize",
     previewFile: "Preview File",
     filePrefix: "File:",
     queryPrefix: "Query:",

@@ -2508,7 +2508,6 @@ Build when you need.`
     searchQuery: "搜索查询",
     content: "内容",
     copy: "复制",
-    maximize: "全屏查看",
     previewFile: "预览文件",
     filePrefix: "文件:",
     queryPrefix: "查询:",
