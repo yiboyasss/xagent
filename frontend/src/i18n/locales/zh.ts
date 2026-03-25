@@ -2502,7 +2502,19 @@ Build when you need.`
     reasoningLabel: "推理:",
     noReasoning: "(暂无推理)",
     toolCallsLabel: "工具调用:",
-    errorTitle: "错误:"
+    errorTitle: "错误:",
+    code: "代码",
+    command: "命令",
+    searchQuery: "搜索查询",
+    content: "内容",
+    copy: "复制",
+    maximize: "全屏查看",
+    previewFile: "预览文件",
+    filePrefix: "文件:",
+    queryPrefix: "查询:",
+    pathPrefix: "路径:",
+    bashPrefix: "Bash命令:",
+    searchPrefix: "搜索:"
   },
 } as const
 

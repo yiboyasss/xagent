@@ -9,6 +9,11 @@ import {
   Terminal,
   Cpu,
   Info,
+  Copy,
+  Maximize2,
+  Search,
+  FileText,
+  Check
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/contexts/app-context-chat';
@@ -250,18 +255,31 @@ function useProcessedSteps(events: TraceEvent[]): ProcessedStep[] {
 
       if (event.event_type === 'tool_execution_end') {
         const result = event.data?.result;
-        let output = '';
-        if (result) {
+        let output: any = '';
+        if (result !== undefined) {
           if (typeof result === 'string') {
             output = result;
-          } else if (typeof result === 'object') {
-            if (result.output) {
+          } else if (typeof result === 'object' && result !== null) {
+            if ('output' in result) {
               output = result.output;
-            } else if (result.message) {
-              output = result.message as string;
+            } else if ('message' in result) {
+              output = result.message;
+            } else {
+              output = result; // fallback to the entire result object
             }
+          } else {
+            output = String(result);
           }
+        } else if (event.data?.output !== undefined) {
+          output = event.data.output;
+        } else if (event.data?.response !== undefined) {
+          output = event.data.response;
+        } else if (event.data !== undefined) {
+          // If no specific result/output field is found, maybe data itself has it or we can dump data
+          // But only dump if we are sure there's some outcome. We'll leave it empty if we can't find anything,
+          // except if there's an 'error' field handled elsewhere.
         }
+
         step.output = output;
 
         const action = findLastRunningAction(step, 'tool');
@@ -342,6 +360,248 @@ function useProcessedSteps(events: TraceEvent[]): ProcessedStep[] {
   }, [events, t]);
 }
 
+
+// --- Specialized Tool Renderers ---
+
+const ActionButton = ({ icon: Icon, onClick, title, className }: any) => (
+    <button
+        onClick={(e) => { e.stopPropagation(); onClick(e); }}
+        className={cn("p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors", className)}
+        title={title}
+    >
+        <Icon className="w-3.5 h-3.5" />
+    </button>
+);
+
+const CopyButton = ({ text, title }: { text: string, title?: string }) => {
+    const { t } = useI18n();
+    const [copied, setCopied] = useState(false);
+    const handleCopy = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+    return (
+        <button
+            onClick={handleCopy}
+            className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors"
+            title={title || t('traceEventRenderer.copy')}
+        >
+            {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+        </button>
+    );
+};
+
+const ToolOutputDisplay = ({ action, isRunning, t }: { action: StepAction, isRunning: boolean, t: any }) => (
+    <>
+        {action.data.output !== undefined && action.data.output !== '' && (
+            <div className="mt-4 flex flex-col gap-1.5">
+                <div className="text-xs text-muted-foreground px-1 flex justify-between items-center">
+                    <span>{t('traceEventRenderer.output')}</span>
+                    <CopyButton text={typeof action.data.output === 'string' ? action.data.output : JSON.stringify(action.data.output, null, 2)} />
+                </div>
+                <div className="p-3 bg-muted/30 border border-border/50 rounded-xl text-[10px] sm:text-xs font-mono overflow-x-auto max-h-[300px] overflow-y-auto text-foreground/80 whitespace-pre-wrap">
+                    {typeof action.data.output === 'string' ? action.data.output : JSON.stringify(action.data.output, null, 2)}
+                </div>
+            </div>
+        )}
+        {(action.data.output === undefined || action.data.output === '') && isRunning && (
+            <div className="mt-4 p-3 bg-muted/30 border border-border/50 rounded-xl text-muted-foreground italic flex items-center gap-2 text-xs">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {t('traceEventRenderer.executing')}
+            </div>
+        )}
+
+    </>
+);
+
+const ToolErrorDisplay = ({ action, t }: { action: StepAction, t: any }) => {
+    if (action.status === 'failed' && action.data.error) {
+        return (
+            <div className="mb-2 mt-2 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 whitespace-pre-wrap text-xs">
+                <span className="font-semibold">{t('traceEventRenderer.errorLabel')}</span> {String(action.data.error)}
+            </div>
+        );
+    }
+    return null;
+};
+
+const PythonToolRenderer = ({ action, onOpenTerminal, isRunning, t }: any) => {
+    const code = action.data.code;
+    return (
+        <div className="pt-2">
+            {code !== undefined && (
+                <div className="flex flex-col gap-1.5">
+                    <div className="text-xs text-muted-foreground px-1 flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                            <span>{t('traceEventRenderer.code')}</span>
+                            {action.data.args?.file_path && (
+                                <span className="px-1.5 py-0.5 bg-muted rounded-md font-mono text-[10px] border border-border/50">
+                                    {action.data.args.file_path}
+                                </span>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                           <CopyButton text={code} />
+                           <ActionButton
+                                icon={Maximize2}
+                                onClick={() => onOpenTerminal(code, typeof action.data.output === 'string' ? action.data.output : JSON.stringify(action.data.output ?? ''), action.data.tool || 'python_executor', action.data.args?.file_path)}
+                                title={t('traceEventRenderer.maximize')}
+                            />
+                        </div>
+                    </div>
+                    <div className="p-3 bg-muted/30 border border-border/50 rounded-xl font-mono text-[10px] sm:text-xs overflow-x-auto relative group">
+                        <span className="absolute right-3 top-3 text-[10px] font-bold text-muted-foreground/50 select-none">PYTHON</span>
+                        <pre className="text-foreground/80">{code}</pre>
+                    </div>
+                </div>
+            )}
+            <ToolOutputDisplay action={action} isRunning={isRunning} t={t} />
+        </div>
+    );
+};
+
+const BashToolRenderer = ({ action, onOpenTerminal, isRunning, t }: any) => {
+    const command = action.data.args?.command || JSON.stringify(action.data.args);
+    return (
+        <div className="pt-2">
+            {command !== undefined && (
+                <div className="flex flex-col gap-1.5">
+                    <div className="text-xs text-muted-foreground px-1 flex justify-between items-center">
+                        <span>{t('traceEventRenderer.command')}</span>
+                        <div className="flex items-center gap-1">
+                           <CopyButton text={command} />
+                           <ActionButton
+                                icon={Maximize2}
+                                onClick={() => onOpenTerminal(command, typeof action.data.output === 'string' ? action.data.output : JSON.stringify(action.data.output ?? ''), action.data.tool || 'bash', undefined)}
+                                title={t('traceEventRenderer.maximize')}
+                            />
+                        </div>
+                    </div>
+                    <div className="p-3 bg-muted/30 border border-border/50 rounded-xl font-mono text-[10px] sm:text-xs overflow-x-auto text-foreground/80">
+                        <span className="text-green-500/70 mr-2 select-none">$</span>
+                        {command}
+                    </div>
+                </div>
+            )}
+            <ToolOutputDisplay action={action} isRunning={isRunning} t={t} />
+        </div>
+    );
+};
+
+const SearchToolRenderer = ({ action, isRunning, t }: any) => {
+    const query = action.data.args?.query || JSON.stringify(action.data.args);
+    return (
+        <div className="pt-2">
+            <div className="flex flex-col gap-1.5">
+                <div className="text-xs text-muted-foreground px-1 flex justify-between items-center">
+                    <span>{t('traceEventRenderer.searchQuery')}</span>
+                    <CopyButton text={query} />
+                </div>
+                <div className="p-3 bg-muted/30 border border-border/50 rounded-xl text-xs flex items-start gap-2">
+                    <Search className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                    <span className="italic text-foreground/80">{query}</span>
+                </div>
+            </div>
+            <ToolOutputDisplay action={action} isRunning={isRunning} t={t} />
+        </div>
+    );
+};
+
+const FileToolRenderer = ({ action, onOpenTerminal, isRunning, t }: any) => {
+    const { args, tool } = action.data;
+    const filePath = args?.file_path || args?.path;
+    const content = args?.content || args?.text || args?.code;
+    const fallbackText = !filePath && !content ? JSON.stringify(args) : undefined;
+
+    return (
+        <div className="pt-2">
+            <div className="flex flex-col gap-1.5">
+                <div className="text-xs text-muted-foreground px-1 flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                        <span>{content ? (t('traceEventRenderer.content')) : (t('traceEventRenderer.args'))}</span>
+                        {filePath && (
+                            <span
+                                className="px-1.5 py-0.5 bg-muted rounded-md font-mono text-[10px] flex items-center gap-1 border border-border/50 cursor-pointer hover:border-primary/80 transition-colors"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onOpenTerminal(String(content || fallbackText || ''), typeof action.data.output === 'string' ? action.data.output : JSON.stringify(action.data.output ?? ''), tool || 'file_tool', filePath);
+                                }}
+                                title={t('traceEventRenderer.previewFile')}
+                            >
+                                <FileText className="w-3 h-3" />
+                                {filePath}
+                            </span>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                       {(content || fallbackText) && <CopyButton text={String(content || fallbackText)} />}
+                       {!filePath && (content || fallbackText) && (
+                           <ActionButton
+                                icon={Maximize2}
+                                onClick={() => onOpenTerminal(String(content || fallbackText || ''), typeof action.data.output === 'string' ? action.data.output : JSON.stringify(action.data.output ?? ''), tool || 'file_tool', filePath)}
+                                title={t('traceEventRenderer.maximize')}
+                            />
+                       )}
+                    </div>
+                </div>
+                <div className="p-3 bg-muted/30 border border-border/50 rounded-xl font-mono text-[10px] sm:text-xs overflow-x-auto text-foreground/80">
+                    {content ? (
+                        <pre className="whitespace-pre-wrap">{String(content)}</pre>
+                    ) : (
+                        <span className="break-all">{fallbackText}</span>
+                    )}
+                </div>
+            </div>
+            <ToolOutputDisplay action={action} isRunning={isRunning} t={t} />
+        </div>
+    );
+};
+
+const DefaultToolRenderer = ({ action, isRunning, t }: any) => {
+    const args = JSON.stringify(action.data.args, null, 2);
+    return (
+        <div className="pt-2">
+            <div className="flex flex-col gap-1.5">
+                <div className="text-xs text-muted-foreground px-1 flex justify-between items-center">
+                    <span>{t('traceEventRenderer.args')}</span>
+                    <CopyButton text={args} />
+                </div>
+                <div className="p-3 bg-muted/30 border border-border/50 rounded-xl font-mono text-[10px] sm:text-xs overflow-x-auto text-foreground/80">
+                    <pre className="whitespace-pre-wrap">{args}</pre>
+                </div>
+            </div>
+            <ToolOutputDisplay action={action} isRunning={isRunning} t={t} />
+        </div>
+    );
+};
+
+const ToolDetailsRenderer = ({ action, onOpenTerminal, isRunning, t }: any) => {
+    const toolName = action.data.tool;
+    let rendererContent = null;
+    if (toolName === 'python_executor') {
+        rendererContent = <PythonToolRenderer action={action} onOpenTerminal={onOpenTerminal} isRunning={isRunning} t={t} />;
+    } else if (toolName === 'bash') {
+        rendererContent = <BashToolRenderer action={action} onOpenTerminal={onOpenTerminal} isRunning={isRunning} t={t} />;
+    } else if (toolName === 'web_search' || toolName === 'tavily_web_search') {
+        rendererContent = <SearchToolRenderer action={action} isRunning={isRunning} t={t} />;
+    } else if (toolName && (toolName.includes('file') || toolName === 'list_directory')) {
+        rendererContent = <FileToolRenderer action={action} onOpenTerminal={onOpenTerminal} isRunning={isRunning} t={t} />;
+    } else {
+        rendererContent = <DefaultToolRenderer action={action} isRunning={isRunning} t={t} />;
+    }
+
+    return (
+        <div className="flex flex-col">
+            <ToolErrorDisplay action={action} t={t} />
+            {rendererContent}
+        </div>
+    );
+};
+
+// --- End Specialized Tool Renderers ---
+
 // Step Action Item Component
 interface StepActionItemProps {
   action: StepAction;
@@ -396,12 +656,23 @@ function StepActionItem({ action, onViewDetail, onOpenTerminal, onFileClick }: S
       return null;
     }
     if (action.type === 'tool') {
-      const { args, code } = action.data;
+      const { tool, args, code } = action.data;
+
+      if (tool === 'python_executor' && code) {
+        return `Python: ${code.slice(0, 50).replace(/[\n\r\s]+/g, ' ').trim()}...`;
+      }
+      if (tool === 'bash' && args?.command) {
+        return `${t('traceEventRenderer.bashPrefix')} ${String(args.command).slice(0, 50)}...`;
+      }
+      if ((tool === 'web_search' || tool === 'tavily_web_search') && args?.query) {
+        return `${t('traceEventRenderer.searchPrefix')} ${args.query}`;
+      }
+
       // Prefer showing file path for file operations
       if (args && typeof args === 'object') {
-        if ('file_path' in args) return String(args.file_path);
-        if ('query' in args) return String(args.query); // For search tools
-        if ('path' in args) return String(args.path);
+        if ('file_path' in args) return `${t('traceEventRenderer.filePrefix')} ${String(args.file_path)}`;
+        if ('query' in args) return `${t('traceEventRenderer.queryPrefix')} ${String(args.query)}`;
+        if ('path' in args) return `${t('traceEventRenderer.pathPrefix')} ${String(args.path)}`;
       }
 
       // Fallback to code snippet
@@ -501,47 +772,7 @@ function StepActionItem({ action, onViewDetail, onOpenTerminal, onFileClick }: S
                  onClick={() => onViewDetail(action)}
                >
                  {action.type === 'tool' && (
-                     <div className="space-y-2">
-                         {/* View Code & Output Button for Tool Actions */}
-                         {(action.data.code || action.data.output) && (
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onOpenTerminal(
-                                        action.data.code || '',
-                                        typeof action.data.output === 'string' ? action.data.output : JSON.stringify(action.data.output || ''),
-                                        action.data.tool || 'tool',
-                                        action.data.args?.file_path
-                                    );
-                                }}
-                                className="group flex items-center gap-2 px-3 py-1.5 bg-[#1a1b26] hover:bg-[#1f2030] border border-[#2a2b3d] rounded-md transition-all duration-200 shadow-sm hover:shadow-md mb-2 w-fit"
-                            >
-                                <Terminal className="w-3.5 h-3.5 text-[#7aa2f7]" />
-                                <span className="text-xs text-[#a9b1d6] font-mono">
-                                  {t('traceEventRenderer.view')} {action.data.args?.file_path || t('traceEventRenderer.codeAndOutput')}
-                                </span>
-                                <ChevronRight className="w-3 h-3 text-[#565f89] group-hover:translate-x-0.5 transition-transform" />
-                            </button>
-                         )}
-                         {action.data.args && (
-                             <div className="text-muted-foreground">
-                                 {t('traceEventRenderer.args')}: {JSON.stringify(action.data.args)}
-                             </div>
-                         )}
-                         {action.data.output && (
-                             <div className="pt-2 border-t border-border/30 text-muted-foreground/80 whitespace-pre-wrap">
-                                 {t('traceEventRenderer.output')}: {typeof action.data.output === 'string' ? action.data.output : JSON.stringify(action.data.output, null, 2)}
-                             </div>
-                         )}
-                         {!action.data.output && isRunning && (
-                             <div className="text-muted-foreground italic">{t('traceEventRenderer.executing')}</div>
-                         )}
-                         {action.status === 'failed' && action.data.error && (
-                             <div className="text-red-400 whitespace-pre-wrap pt-2 border-t border-red-500/30">
-                                 {t('traceEventRenderer.errorLabel')} {String(action.data.error)}
-                             </div>
-                         )}
-                     </div>
+                     <ToolDetailsRenderer action={action} onOpenTerminal={onOpenTerminal} isRunning={isRunning} t={t} />
                  )}
 
                  {action.type === 'error' && (

@@ -2502,7 +2502,19 @@ Build when you need.`
     reasoningLabel: "Reasoning:",
     noReasoning: "(No reasoning yet)",
     toolCallsLabel: "Tool Calls:",
-    errorTitle: "Error:"
+    errorTitle: "Error:",
+    code: "Code",
+    command: "Command",
+    searchQuery: "Search Query",
+    content: "Content",
+    copy: "Copy",
+    maximize: "Maximize",
+    previewFile: "Preview File",
+    filePrefix: "File:",
+    queryPrefix: "Query:",
+    pathPrefix: "Path:",
+    bashPrefix: "Bash:",
+    searchPrefix: "Search:"
   },
 } as const
 
