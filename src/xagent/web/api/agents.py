@@ -786,9 +786,9 @@ async def preview_agent(
             user_id=int(current_user.id),
             is_admin=bool(current_user.is_admin),
             allowed_collections=request.knowledge_bases
-            if request.knowledge_bases
+            if request.knowledge_bases is not None
             else None,
-            allowed_skills=request.skills if request.skills else None,
+            allowed_skills=request.skills if request.skills is not None else None,
             task_id=preview_task_id,
             workspace_base_dir="uploads/preview",
         )
@@ -831,7 +831,7 @@ async def preview_agent(
             execution_context["system_prompt"] = request.instructions
         execution_context["system_prompt"] = enhance_system_prompt_with_kb(  # type: ignore[assignment]
             execution_context.get("system_prompt"),
-            request.knowledge_bases if request.knowledge_bases else None,
+            request.knowledge_bases if request.knowledge_bases is not None else None,
         )
 
         with UserContext(int(current_user.id)):
