@@ -9,6 +9,7 @@ import { getApiUrl, getAuthHeaders } from "@/lib/utils"
 import { apiRequest } from "@/lib/api-wrapper"
 import { useAuth } from "@/contexts/auth-context"
 import { useI18n } from "@/contexts/i18n-context"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import {
   MessageSquare,
   Search,
@@ -151,8 +152,12 @@ export function VibePage() {
     )
   }
 
-  const deleteTask = async (taskId: string) => {
-    if (!confirm(t('vibe.actions.delete_confirm'))) return
+  const [taskToDelete, setTaskToDelete] = useState<string | null>(null)
+
+  const confirmDeleteTask = async () => {
+    if (!taskToDelete) return
+    const taskId = taskToDelete
+    setTaskToDelete(null)
 
     try {
       const response = await apiRequest(`${getApiUrl()}/api/chat/task/${taskId}`, {
@@ -166,6 +171,10 @@ export function VibePage() {
     } catch (error) {
       console.error('Failed to delete task:', error)
     }
+  }
+
+  const deleteTask = (taskId: string) => {
+    setTaskToDelete(taskId)
   }
 
   return (
@@ -401,6 +410,13 @@ export function VibePage() {
           </Card>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={!!taskToDelete}
+        onOpenChange={(open) => !open && setTaskToDelete(null)}
+        onConfirm={confirmDeleteTask}
+        description={t('vibe.actions.delete_confirm')}
+      />
     </div>
   )
 }

@@ -9,6 +9,7 @@ import { getApiUrl } from "@/lib/utils"
 import { apiRequest } from "@/lib/api-wrapper"
 import { useAuth } from "@/contexts/auth-context"
 import { useApp } from "@/contexts/app-context-chat"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { getBrandingFromEnv } from "@/lib/branding"
 import {
   Activity,
@@ -217,11 +218,12 @@ export function Sidebar({ className }: SidebarProps) {
   const licenseUrl = `${normalizedGithubUrl}/blob/main/LICENSE`
   const [githubStars, setGithubStars] = useState<number | null>(null)
 
-  const deleteTask = async (taskId: string, e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
+  const [taskToDelete, setTaskToDelete] = useState<string | null>(null)
 
-    if (!confirm(t('common.deleteConfirm'))) return
+  const confirmDeleteTask = async () => {
+    if (!taskToDelete) return
+    const taskId = taskToDelete
+    setTaskToDelete(null)
 
     try {
       const response = await apiRequest(`${getApiUrl()}/api/chat/task/${taskId}`, {
@@ -248,6 +250,12 @@ export function Sidebar({ className }: SidebarProps) {
     } catch (error) {
       console.error('Failed to delete task:', error)
     }
+  }
+
+  const deleteTask = (taskId: string, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setTaskToDelete(taskId)
   }
 
   const startRenaming = (task: Task) => {
@@ -549,11 +557,11 @@ export function Sidebar({ className }: SidebarProps) {
     const { scrollHeight, clientHeight } = navRef.current
     // If content height is less than or equal to container height (plus a buffer), and there is more data, and not loading
     if (scrollHeight <= clientHeight + 20 && hasMore && !isLoadingMore && !isLoadingTasks) {
-       // Use setTimeout to avoid continuous state updates in one render cycle
-       const timer = setTimeout(() => {
-         loadTasks(page + 1, true)
-       }, 100)
-       return () => clearTimeout(timer)
+      // Use setTimeout to avoid continuous state updates in one render cycle
+      const timer = setTimeout(() => {
+        loadTasks(page + 1, true)
+      }, 100)
+      return () => clearTimeout(timer)
     }
   }, [tasks, hasMore, isLoadingMore, isLoadingTasks, page, loadTasks])
 
@@ -583,7 +591,7 @@ export function Sidebar({ className }: SidebarProps) {
   const handleScroll = (e: React.UIEvent<HTMLElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget
     if (scrollHeight - scrollTop <= clientHeight + 20 && hasMore && !isLoadingMore && !isLoadingTasks) {
-       loadTasks(page + 1, true)
+      loadTasks(page + 1, true)
     }
   }
 
@@ -797,9 +805,9 @@ export function Sidebar({ className }: SidebarProps) {
           {isHistoryExpanded && (
             <div className="space-y-1">
               {isLoadingTasks ? (
-                  <div className="flex items-center justify-center py-4">
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                  </div>
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
               ) : tasks.length > 0 ? (
                 <>
                   {tasks.map(task => {
@@ -818,11 +826,11 @@ export function Sidebar({ className }: SidebarProps) {
                       >
                         <div className="relative h-4 w-4 mr-3 flex-shrink-0">
                           {task.agent_id && task.agent_logo_url ? (
-                             <img
-                               src={`${getApiUrl()}${task.agent_logo_url}`}
-                               alt="Agent Logo"
-                               className="h-4 w-4 absolute inset-0 transition-opacity duration-200 group-hover:opacity-0 rounded-full object-cover"
-                             />
+                            <img
+                              src={`${getApiUrl()}${task.agent_logo_url}`}
+                              alt="Agent Logo"
+                              className="h-4 w-4 absolute inset-0 transition-opacity duration-200 group-hover:opacity-0 rounded-full object-cover"
+                            />
                           ) : (
                             <MessageSquare className={cn(
                               "h-4 w-4 absolute inset-0 transition-opacity duration-200 group-hover:opacity-0",
@@ -890,11 +898,12 @@ export function Sidebar({ className }: SidebarProps) {
                           </Popover>
                         </div>
                       </Link>
-                  )})}
+                    )
+                  })}
                   {isLoadingMore && (
-                      <div className="flex items-center justify-center py-2">
-                        <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                      </div>
+                    <div className="flex items-center justify-center py-2">
+                      <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                    </div>
                   )}
                 </>
               ) : (
@@ -912,40 +921,40 @@ export function Sidebar({ className }: SidebarProps) {
       <div className="p-4 relative mt-auto" ref={userMenuRef}>
         {showUserMenu && (
           <div className="absolute bottom-full left-4 right-4 mb-2 bg-popover border border-border rounded-lg shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-50">
-             <div className="py-1">
-                {getUserMenuItemsForUser(user).map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="flex items-center px-4 py-2 text-sm text-foreground hover:bg-accent transition-colors"
-                    onClick={() => setShowUserMenu(false)}
-                  >
-                    <item.icon className="h-4 w-4 mr-3 text-muted-foreground" />
-                    {item.nameKey ? t(item.nameKey) : item.name}
-                  </Link>
-                ))}
-                <button
-                  onClick={() => {
-                    setShowUserMenu(false)
-                    setIsAboutOpen(true)
-                  }}
-                  className="flex w-full items-center px-4 py-2 text-sm text-foreground hover:bg-accent transition-colors text-left"
+            <div className="py-1">
+              {getUserMenuItemsForUser(user).map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="flex items-center px-4 py-2 text-sm text-foreground hover:bg-accent transition-colors"
+                  onClick={() => setShowUserMenu(false)}
                 >
-                  <Info className="h-4 w-4 mr-3 text-muted-foreground" />
-                  {t("sidebar.about.menu")}
-                </button>
-                <div className="h-px bg-border my-1 mx-2" />
-                <button
-                  onClick={() => {
-                    logout()
-                    setShowUserMenu(false)
-                  }}
-                  className="flex w-full items-center px-4 py-2 text-sm hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors text-left"
-                >
-                  <LogOut className="h-4 w-4 mr-3" />
-                  {t('sidebar.user.logoutTitle')}
-                </button>
-             </div>
+                  <item.icon className="h-4 w-4 mr-3 text-muted-foreground" />
+                  {item.nameKey ? t(item.nameKey) : item.name}
+                </Link>
+              ))}
+              <button
+                onClick={() => {
+                  setShowUserMenu(false)
+                  setIsAboutOpen(true)
+                }}
+                className="flex w-full items-center px-4 py-2 text-sm text-foreground hover:bg-accent transition-colors text-left"
+              >
+                <Info className="h-4 w-4 mr-3 text-muted-foreground" />
+                {t("sidebar.about.menu")}
+              </button>
+              <div className="h-px bg-border my-1 mx-2" />
+              <button
+                onClick={() => {
+                  logout()
+                  setShowUserMenu(false)
+                }}
+                className="flex w-full items-center px-4 py-2 text-sm hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors text-left"
+              >
+                <LogOut className="h-4 w-4 mr-3" />
+                {t('sidebar.user.logoutTitle')}
+              </button>
+            </div>
           </div>
         )}
         <button
@@ -1039,6 +1048,12 @@ export function Sidebar({ className }: SidebarProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        isOpen={!!taskToDelete}
+        onOpenChange={(open) => !open && setTaskToDelete(null)}
+        onConfirm={confirmDeleteTask}
+      />
     </div>
   )
 }

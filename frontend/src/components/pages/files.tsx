@@ -9,6 +9,7 @@ import { apiRequest } from "@/lib/api-wrapper"
 import { useI18n } from "@/contexts/i18n-context"
 import { StandaloneFilePreviewDialog } from "@/components/file/standalone-file-preview-dialog"
 import { SearchInput } from "@/components/ui/search-input"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import {
   Upload,
   FileText,
@@ -191,10 +192,9 @@ export function FilesPage() {
     }
   }
 
-  const deleteFile = async (file: FileItem, skipConfirm = false) => {
-    const displayName = file.filename
-    if (!skipConfirm && !confirm(t('files.delete.confirmSingle', { name: displayName }))) return
+  const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean, type: 'single' | 'multiple', file?: FileItem }>({ isOpen: false, type: 'single' })
 
+  const performDeleteFile = async (file: FileItem) => {
     try {
       const response = await apiRequest(`${getApiUrl()}/api/files/${encodeURIComponent(file.file_id)}`, {
         method: 'DELETE'
@@ -207,6 +207,14 @@ export function FilesPage() {
     } catch (error) {
       console.error('Failed to delete file:', error)
     }
+  }
+
+  const deleteFile = async (file: FileItem, skipConfirm = false) => {
+    if (skipConfirm) {
+      await performDeleteFile(file)
+      return
+    }
+    setConfirmDialog({ isOpen: true, type: 'single', file })
   }
 
   const downloadFile = async (file: FileItem) => {
@@ -312,10 +320,7 @@ export function FilesPage() {
     )
   }
 
-  const deleteSelectedFiles = async () => {
-    if (selectedFiles.length === 0) return
-    if (!confirm(t('files.delete.confirmMultiple', { count: selectedFiles.length }))) return
-
+  const performDeleteSelectedFiles = async () => {
     for (const fileId of selectedFiles) {
       const fileToDelete = files.find(f => f.file_id === fileId)
       if (fileToDelete) {
@@ -323,6 +328,20 @@ export function FilesPage() {
       }
     }
     setSelectedFiles([])
+  }
+
+  const deleteSelectedFiles = async () => {
+    if (selectedFiles.length === 0) return
+    setConfirmDialog({ isOpen: true, type: 'multiple' })
+  }
+
+  const handleConfirmDelete = async () => {
+    if (confirmDialog.type === 'single' && confirmDialog.file) {
+      await performDeleteFile(confirmDialog.file)
+    } else if (confirmDialog.type === 'multiple') {
+      await performDeleteSelectedFiles()
+    }
+    setConfirmDialog({ isOpen: false, type: 'single' })
   }
 
   return (
@@ -577,6 +596,15 @@ export function FilesPage() {
             fileName={previewFile.fileName}
           />
       )}
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, isOpen: open }))}
+        onConfirm={handleConfirmDelete}
+        description={confirmDialog.type === 'single'
+          ? t('files.delete.confirmSingle', { name: confirmDialog.file?.filename || '' })
+          : t('files.delete.confirmMultiple', { count: selectedFiles.length })}
+      />
     </div>
   )
 }
