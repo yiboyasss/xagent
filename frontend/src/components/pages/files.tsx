@@ -10,6 +10,7 @@ import { useI18n } from "@/contexts/i18n-context"
 import { StandaloneFilePreviewDialog } from "@/components/file/standalone-file-preview-dialog"
 import { SearchInput } from "@/components/ui/search-input"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { toast } from "sonner"
 import {
   Upload,
   FileText,
@@ -194,26 +195,9 @@ export function FilesPage() {
 
   const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean, type: 'single' | 'multiple', file?: FileItem }>({ isOpen: false, type: 'single' })
 
-  const performDeleteFile = async (file: FileItem) => {
-    try {
-      const response = await apiRequest(`${getApiUrl()}/api/files/${encodeURIComponent(file.file_id)}`, {
-        method: 'DELETE'
-      })
+  const [isDeletingFile, setIsDeletingFile] = useState(false)
 
-      if (response.ok) {
-        setFiles(prev => prev.filter(f => f.file_id !== file.file_id))
-        setSelectedFiles(prev => prev.filter(f => f !== file.file_id))
-      }
-    } catch (error) {
-      console.error('Failed to delete file:', error)
-    }
-  }
-
-  const deleteFile = async (file: FileItem, skipConfirm = false) => {
-    if (skipConfirm) {
-      await performDeleteFile(file)
-      return
-    }
+  const deleteFile = async (file: FileItem) => {
     setConfirmDialog({ isOpen: true, type: 'single', file })
   }
 
@@ -320,28 +304,53 @@ export function FilesPage() {
     )
   }
 
-  const performDeleteSelectedFiles = async () => {
-    for (const fileId of selectedFiles) {
-      const fileToDelete = files.find(f => f.file_id === fileId)
-      if (fileToDelete) {
-        await deleteFile(fileToDelete, true)
-      }
-    }
-    setSelectedFiles([])
-  }
-
   const deleteSelectedFiles = async () => {
     if (selectedFiles.length === 0) return
     setConfirmDialog({ isOpen: true, type: 'multiple' })
   }
 
   const handleConfirmDelete = async () => {
-    if (confirmDialog.type === 'single' && confirmDialog.file) {
-      await performDeleteFile(confirmDialog.file)
-    } else if (confirmDialog.type === 'multiple') {
-      await performDeleteSelectedFiles()
+    setIsDeletingFile(true)
+    try {
+      if (confirmDialog.type === 'single' && confirmDialog.file) {
+        const file = confirmDialog.file
+        const response = await apiRequest(`${getApiUrl()}/api/files/${encodeURIComponent(file.file_id)}`, {
+          method: 'DELETE'
+        })
+
+        if (response.ok) {
+          setFiles(prev => prev.filter(f => f.file_id !== file.file_id))
+          setSelectedFiles(prev => prev.filter(f => f !== file.file_id))
+        } else {
+          toast.error(t('common.deleteFailed') || "Failed to delete file")
+        }
+      } else if (confirmDialog.type === 'multiple') {
+        let hasError = false
+        for (const fileId of selectedFiles) {
+          const fileToDelete = files.find(f => f.file_id === fileId)
+          if (fileToDelete) {
+            const response = await apiRequest(`${getApiUrl()}/api/files/${encodeURIComponent(fileToDelete.file_id)}`, {
+              method: 'DELETE'
+            })
+            if (response.ok) {
+              setFiles(prev => prev.filter(f => f.file_id !== fileToDelete.file_id))
+            } else {
+              hasError = true
+            }
+          }
+        }
+        setSelectedFiles([])
+        if (hasError) {
+          toast.error(t('common.deleteFailed'))
+        }
+      }
+    } catch (error) {
+      console.error('Failed to delete file(s):', error)
+      toast.error(t('common.deleteFailed'))
+    } finally {
+      setIsDeletingFile(false)
+      setConfirmDialog({ isOpen: false, type: 'single' })
     }
-    setConfirmDialog({ isOpen: false, type: 'single' })
   }
 
   return (
@@ -601,6 +610,7 @@ export function FilesPage() {
         isOpen={confirmDialog.isOpen}
         onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, isOpen: open }))}
         onConfirm={handleConfirmDelete}
+        isLoading={isDeletingFile}
         description={confirmDialog.type === 'single'
           ? t('files.delete.confirmSingle', { name: confirmDialog.file?.filename || '' })
           : t('files.delete.confirmMultiple', { count: selectedFiles.length })}

@@ -604,11 +604,12 @@ export function ModelsPage() {
   }
 
   const [modelToDelete, setModelToDelete] = useState<string | null>(null)
+  const [isDeletingModel, setIsDeletingModel] = useState(false)
 
   const confirmDeleteModel = async () => {
     if (!modelToDelete) return
     const modelId = modelToDelete
-    setModelToDelete(null)
+    setIsDeletingModel(true)
 
     try {
       const response = await apiRequest(getModelDetailUrl(modelId), {
@@ -627,8 +628,11 @@ export function ModelsPage() {
       if (viewMode === 'list') {
         setManagingProviderModels(prev => prev.filter(m => m.model_id !== modelId))
       }
+      setModelToDelete(null)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('models.errors.deleteFailed'))
+    } finally {
+      setIsDeletingModel(false)
     }
   }
 
@@ -1521,6 +1525,7 @@ export function ModelsPage() {
         isOpen={!!modelToDelete}
         onOpenChange={(open) => !open && setModelToDelete(null)}
         onConfirm={confirmDeleteModel}
+        isLoading={isDeletingModel}
         description={t('models.deleteConfirm')}
       />
       </div>

@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { useApp } from "@/contexts/app-context-chat"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { getBrandingFromEnv } from "@/lib/branding"
+import { toast } from "sonner"
 import {
   Activity,
   FileText,
@@ -219,11 +220,12 @@ export function Sidebar({ className }: SidebarProps) {
   const [githubStars, setGithubStars] = useState<number | null>(null)
 
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null)
+  const [isDeletingTask, setIsDeletingTask] = useState(false)
 
   const confirmDeleteTask = async () => {
     if (!taskToDelete) return
     const taskId = taskToDelete
-    setTaskToDelete(null)
+    setIsDeletingTask(true)
 
     try {
       const response = await apiRequest(`${getApiUrl()}/api/chat/task/${taskId}`, {
@@ -246,9 +248,15 @@ export function Sidebar({ className }: SidebarProps) {
         if (String(getCurrentTaskId()) === String(taskId)) {
           router.push('/task')
         }
+        setTaskToDelete(null)
+      } else {
+        toast.error(t('common.deleteFailed'))
       }
     } catch (error) {
       console.error('Failed to delete task:', error)
+      toast.error(t('common.deleteFailed'))
+    } finally {
+      setIsDeletingTask(false)
     }
   }
 
@@ -1053,6 +1061,7 @@ export function Sidebar({ className }: SidebarProps) {
         isOpen={!!taskToDelete}
         onOpenChange={(open) => !open && setTaskToDelete(null)}
         onConfirm={confirmDeleteTask}
+        isLoading={isDeletingTask}
       />
     </div>
   )

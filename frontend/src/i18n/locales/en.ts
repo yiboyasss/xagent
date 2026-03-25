@@ -7,6 +7,7 @@ const en = {
     delete: "Delete",
     confirm: "Confirm",
     deleteConfirm: "Are you sure you want to delete this item?",
+    deleteFailed: "Failed to delete",
     notice: "Notice",
     copy: "Copy",
     copied: "Copied!",

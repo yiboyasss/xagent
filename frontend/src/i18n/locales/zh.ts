@@ -7,6 +7,7 @@ const zh = {
     delete: "删除",
     confirm: "确定",
     deleteConfirm: "确定要删除这个任务吗？",
+    deleteFailed: "删除失败",
     notice: "提示",
     copy: "复制",
     copied: "已复制",

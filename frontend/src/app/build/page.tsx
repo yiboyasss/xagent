@@ -10,6 +10,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { apiRequest } from "@/lib/api-wrapper"
 import { getApiUrl } from "@/lib/utils"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { toast } from "sonner"
 
 interface Agent {
   id: number
@@ -85,11 +86,12 @@ export default function BuildsPage() {
   }
 
   const [agentToDelete, setAgentToDelete] = useState<number | null>(null)
+  const [isDeletingAgent, setIsDeletingAgent] = useState(false)
 
   const confirmDeleteAgent = async () => {
     if (agentToDelete === null) return
     const agentId = agentToDelete
-    setAgentToDelete(null)
+    setIsDeletingAgent(true)
 
     try {
       const response = await apiRequest(`${getApiUrl()}/api/agents/${agentId}`, {
@@ -97,9 +99,15 @@ export default function BuildsPage() {
       })
       if (response.ok) {
         fetchAgents() // Refresh list
+        setAgentToDelete(null)
+      } else {
+        toast.error(t('common.deleteFailed'))
       }
     } catch (error) {
       console.error("Failed to delete agent:", error)
+      toast.error(t('common.deleteFailed'))
+    } finally {
+      setIsDeletingAgent(false)
     }
   }
 
@@ -304,6 +312,7 @@ export default function BuildsPage() {
         isOpen={agentToDelete !== null}
         onOpenChange={(open) => !open && setAgentToDelete(null)}
         onConfirm={confirmDeleteAgent}
+        isLoading={isDeletingAgent}
         description={t('builds.list.actions.deleteConfirm')}
       />
     </div>

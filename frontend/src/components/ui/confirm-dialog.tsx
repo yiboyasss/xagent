@@ -1,4 +1,5 @@
 import React from "react"
+import { Loader2 } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,6 +20,7 @@ interface ConfirmDialogProps {
   description?: string
   confirmText?: string
   cancelText?: string
+  isLoading?: boolean
 }
 
 export function ConfirmDialog({
@@ -29,6 +31,7 @@ export function ConfirmDialog({
   description,
   confirmText,
   cancelText,
+  isLoading = false,
 }: ConfirmDialogProps) {
   const { t } = useI18n()
 
@@ -42,8 +45,15 @@ export function ConfirmDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>{cancelText || t("common.cancel")}</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>
+          <AlertDialogCancel disabled={isLoading}>{cancelText || t("common.cancel")}</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={(e) => {
+              e.preventDefault()
+              if (!isLoading) onConfirm()
+            }}
+            disabled={isLoading}
+          >
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {confirmText || t("common.confirm")}
           </AlertDialogAction>
         </AlertDialogFooter>

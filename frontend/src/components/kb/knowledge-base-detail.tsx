@@ -277,11 +277,12 @@ export function KnowledgeBaseDetailContent({ collectionName }: { collectionName:
   }
 
   const [documentToDelete, setDocumentToDelete] = useState<string | null>(null)
+  const [isDeletingDocument, setIsDeletingDocument] = useState(false)
 
   const confirmDeleteDocument = async () => {
     if (!documentToDelete) return
     const fileName = documentToDelete
-    setDocumentToDelete(null)
+    setIsDeletingDocument(true)
 
     try {
       console.log("Deleting document:", fileName)
@@ -312,9 +313,12 @@ export function KnowledgeBaseDetailContent({ collectionName }: { collectionName:
       // Reload collection info
       await fetchCollectionInfo()
       console.log("Collection info refreshed")
+      setDocumentToDelete(null)
     } catch (error) {
       console.error("Delete error:", error)
       toast.error(error instanceof Error ? error.message : t("kb.detail.errors.deleteFailed"))
+    } finally {
+      setIsDeletingDocument(false)
     }
   }
 
@@ -1285,6 +1289,7 @@ export function KnowledgeBaseDetailContent({ collectionName }: { collectionName:
         isOpen={!!documentToDelete}
         onOpenChange={(open) => !open && setDocumentToDelete(null)}
         onConfirm={confirmDeleteDocument}
+        isLoading={isDeletingDocument}
         description={t("kb.detail.uploaded.confirmDelete")}
       />
     </div>
