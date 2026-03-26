@@ -622,7 +622,7 @@ class AgentServiceManager:
                 # Filter tools by tool category using tool metadata
                 # Note: Tool names are stable, defined in code, no database storage needed
                 allowed_tools = None
-                if agent_config and agent_config.get("tool_categories"):
+                if agent_config and "tool_categories" in agent_config:
                     tool_categories = agent_config["tool_categories"]
 
                     # Get tools by filtering using ToolFactory

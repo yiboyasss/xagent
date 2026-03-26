@@ -1769,18 +1769,21 @@ Build when you need.`
         create: "创建新知识库",
         noData: "暂无可用知识库",
         selected: "已选择 {count} 个",
+        selectAll: "全选",
       },
       skills: {
         label: "技能",
         placeholder: "选择技能",
         create: "创建新技能",
         noData: "暂无可用技能",
+        selectAll: "全选",
       },
       tools: {
         label: "工具",
         placeholder: "选择工具类别",
         noData: "暂无可用工具",
         selectedCount: "已选择 {count} 个类别（共 {tools} 个工具）",
+        selectAll: "全选",
         categories: {
           basic: "基础工具",
           file: "文件操作",

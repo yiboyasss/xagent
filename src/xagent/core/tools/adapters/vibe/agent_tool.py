@@ -186,14 +186,36 @@ class AgentTool(AbstractBaseTool):
                 def __init__(self, user_id: int):
                     self.user = type("obj", (), {"id": user_id})()
 
+            allowed_tools = None
+            if agent.tool_categories is not None:
+                from .factory import ToolFactory
+
+                temp_config = WebToolConfig(
+                    db=self._db,
+                    request=MinimalRequest(self._user_id),
+                    user_id=self._user_id,
+                    include_mcp_tools=False,
+                    browser_tools_enabled=True,
+                )
+                all_tools = await ToolFactory.create_all_tools(temp_config)
+                allowed_tools = []
+                for tool in all_tools:
+                    if hasattr(tool, "metadata") and hasattr(tool.metadata, "category"):
+                        category = str(tool.metadata.category.value)
+                        if category in agent.tool_categories:
+                            tool_name = getattr(tool, "name", None)
+                            if tool_name:
+                                allowed_tools.append(tool_name)
+
             tool_config = WebToolConfig(
                 db=self._db,
                 request=MinimalRequest(self._user_id),
                 user_id=self._user_id,
                 allowed_collections=agent.knowledge_bases
-                if agent.knowledge_bases
+                if agent.knowledge_bases is not None
                 else None,
-                allowed_skills=agent.skills if agent.skills else None,
+                allowed_skills=agent.skills if agent.skills is not None else None,
+                allowed_tools=allowed_tools,
                 task_id=execution_task_id,
                 workspace_base_dir=self._workspace_base_dir,
             )
