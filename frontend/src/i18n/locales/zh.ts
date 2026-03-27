@@ -23,6 +23,7 @@ const zh = {
     expand: "展开",
     collapse: "收起",
     noOptions: "暂无选项",
+    rename: "重命名",
     errors: {
       unknown: "未知错误",
     },
@@ -1768,18 +1769,21 @@ Build when you need.`
         create: "创建新知识库",
         noData: "暂无可用知识库",
         selected: "已选择 {count} 个",
+        selectAll: "全选",
       },
       skills: {
         label: "技能",
         placeholder: "选择技能",
         create: "创建新技能",
         noData: "暂无可用技能",
+        selectAll: "全选",
       },
       tools: {
         label: "工具",
         placeholder: "选择工具类别",
         noData: "暂无可用工具",
         selectedCount: "已选择 {count} 个类别（共 {tools} 个工具）",
+        selectAll: "全选",
         categories: {
           basic: "基础工具",
           file: "文件操作",
@@ -2483,6 +2487,7 @@ Build when you need.`
     llmResponse: "LLM 响应",
     unknownTool: "未知工具",
     executeTool: "执行工具: {tool}",
+    sandboxedExecution: "沙盒安全运行",
     toolExecutionFinished: "工具执行完成",
     unknownError: "未知错误",
     executionFailed: "执行失败",

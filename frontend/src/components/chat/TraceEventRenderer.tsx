@@ -12,6 +12,7 @@ import {
   Search,
   FileText,
   Check
+  Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/contexts/app-context-chat';
@@ -86,6 +87,7 @@ interface StepAction {
     reasoning?: string;
     error?: any;
     tool_calls?: any;
+    sandboxed?: boolean;
   };
 }
 
@@ -246,7 +248,8 @@ function useProcessedSteps(events: TraceEvent[]): ProcessedStep[] {
           data: {
             tool: toolName,
             args: toolArgs,
-            code: step.code
+            code: step.code,
+            sandboxed: !!event.data?.sandboxed
           }
         });
       }
@@ -292,7 +295,7 @@ function useProcessedSteps(events: TraceEvent[]): ProcessedStep[] {
             title: t('traceEventRenderer.toolExecutionFinished'),
             status: 'completed',
             timestamp,
-            data: { output }
+            data: { output, sandboxed: !!event.data?.sandboxed }
           });
         }
       }
@@ -717,6 +720,13 @@ function StepActionItem({ action, onViewDetail, onOpenTerminal, onFileClick }: S
           </span>
 
           <span className="font-medium whitespace-nowrap">{action.title}</span>
+
+          {action.data.sandboxed && (
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 whitespace-nowrap">
+              <Shield className="w-3 h-3" />
+              {t('traceEventRenderer.sandboxedExecution')}
+            </span>
+          )}
 
           {summary && (
             <span className="text-muted-foreground/50 font-normal truncate ml-1 hidden sm:block max-w-[600px]">

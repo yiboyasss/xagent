@@ -86,6 +86,8 @@ ai-document = ["docling>=2.68.0"]
 # Note: For production, consider installing psycopg2 from source instead
 postgresql = ["psycopg2-binary>=2.9.0"]
 
+duckdb = ["duckdb>=1.0.0,<2.0", "duckdb-engine>=0.10.0,<1.0"]
+
 # Browser automation
 browser = ["playwright>=1.40.0"]
 

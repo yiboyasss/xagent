@@ -1,6 +1,7 @@
 """Tests for collection manager functionality."""
 
 import asyncio
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -9,6 +10,7 @@ from xagent.core.tools.core.RAG_tools.core.schemas import CollectionInfo
 from xagent.core.tools.core.RAG_tools.management.collection_manager import (
     CollectionManager,
     get_collection_sync,
+    resolve_effective_embedding_model_sync,
     update_collection_stats_sync,
 )
 
@@ -42,7 +44,8 @@ class TestCollectionManager:
         mock_table = Mock()
         mock_result = Mock()
 
-        # Set up the mock chain
+        # Set up the mock chain - schema_manager._ensure_schema_fields expects iterable schema fields
+        mock_table.schema = [SimpleNamespace(name="name")]
         mock_connection.open_table.return_value = mock_table
         mock_table.search.return_value.where.return_value.to_pandas.return_value = (
             mock_result
@@ -84,7 +87,8 @@ class TestCollectionManager:
         mock_table = Mock()
         mock_result = Mock()
 
-        # Set up the mock chain
+        # Set up the mock chain - schema_manager._ensure_schema_fields expects iterable schema fields
+        mock_table.schema = [SimpleNamespace(name="name")]
         mock_connection.open_table.return_value = mock_table
         mock_table.search.return_value.where.return_value.to_pandas.return_value = (
             mock_result
@@ -110,6 +114,8 @@ class TestCollectionManager:
         mock_connection = Mock()
         mock_table = Mock()
         mock_connection.open_table.return_value = mock_table
+        # schema_manager._ensure_schema_fields expects iterable schema fields.
+        mock_table.schema = [SimpleNamespace(name="name")]
         mock_table.add = Mock()
 
         with patch.object(
@@ -133,6 +139,8 @@ class TestCollectionManager:
         mock_connection = Mock()
         mock_table = Mock()
         mock_result = Mock()
+        # schema_manager._ensure_schema_fields expects iterable schema fields
+        mock_table.schema = [SimpleNamespace(name="name")]
         mock_connection.open_table.return_value = mock_table
         mock_table.search.return_value.where.return_value.to_pandas.return_value = (
             mock_result
@@ -283,3 +291,28 @@ class TestCollectionInfoProperties:
         # Complex types should be JSON strings
         assert isinstance(data["document_names"], str)
         assert isinstance(data["extra_metadata"], str)
+
+
+class TestResolveEffectiveEmbeddingModel:
+    """Test resolve_effective_embedding_model_sync edge cases."""
+
+    @patch(
+        "xagent.core.tools.core.RAG_tools.management.collection_manager.mark_collection_accessed_sync"
+    )
+    @patch(
+        "xagent.core.tools.core.RAG_tools.management.collection_manager.get_collection_sync"
+    )
+    def test_empty_bound_model_falls_back_to_config(
+        self, mock_get_collection: Mock, _mock_mark: Mock
+    ) -> None:
+        """Empty bound model ID should be treated as missing and use config fallback."""
+        mock_get_collection.return_value = CollectionInfo(
+            name="test_collection",
+            embedding_model_id="",
+            embedding_dimension=1536,
+        )
+
+        resolved = resolve_effective_embedding_model_sync(
+            "test_collection", config_model_id="text-embedding-v4"
+        )
+        assert resolved == "text-embedding-v4"

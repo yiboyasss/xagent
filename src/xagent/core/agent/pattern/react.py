@@ -1754,24 +1754,30 @@ Failed final answer:
             # Execute tool
             tool_args = action.tool_args or {}
             tool_execution_id = f"tool_{action.tool_name}_{uuid4().hex[:8]}"
-
-            # Trace tool execution start
-            if task_id is not None and step_id is not None:
-                await trace_tool_execution_start(
-                    self.tracer,
-                    task_id,
-                    step_id,
-                    action.tool_name,
-                    data={
-                        "tool_args": tool_args,
-                        "tool_execution_id": tool_execution_id,
-                        "step_id": step_id,
-                        "step_name": getattr(self, "_current_step_name", "main"),
-                    },
-                )
+            is_sandboxed = False
 
             try:
                 tool = self.tool_registry.get(action.tool_name)
+
+                # Check if tool runs in sandbox (duck-type detection)
+                is_sandboxed = getattr(tool, "is_sandboxed", False)
+
+                # Trace tool execution start
+                if task_id is not None and step_id is not None:
+                    await trace_tool_execution_start(
+                        self.tracer,
+                        task_id,
+                        step_id,
+                        action.tool_name,
+                        data={
+                            "tool_args": tool_args,
+                            "tool_execution_id": tool_execution_id,
+                            "step_id": step_id,
+                            "step_name": getattr(self, "_current_step_name", "main"),
+                            "sandboxed": is_sandboxed,
+                        },
+                    )
+
                 result = await tool.run_json_async(tool_args)
 
                 # Trace tool execution end
@@ -1789,6 +1795,7 @@ Failed final answer:
                             "success": True,
                             "step_id": step_id,
                             "step_name": getattr(self, "_current_step_name", "main"),
+                            "sandboxed": is_sandboxed,
                         },
                     )
 
@@ -1816,6 +1823,7 @@ Failed final answer:
                             "tool_execution_id": tool_execution_id,
                             "step_id": step_id,
                             "step_name": getattr(self, "_current_step_name", "main"),
+                            "sandboxed": is_sandboxed,
                         },
                     )
 

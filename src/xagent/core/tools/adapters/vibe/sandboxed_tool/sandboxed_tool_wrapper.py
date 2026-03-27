@@ -142,6 +142,11 @@ class SandboxedToolWrapper(AbstractBaseTool):
         self._init_params_b64 = _serialize_init_params(init_params)
 
     @property
+    def is_sandboxed(self) -> bool:
+        """Marker for sandboxed."""
+        return True
+
+    @property
     def name(self) -> str:
         return self._target.name
 

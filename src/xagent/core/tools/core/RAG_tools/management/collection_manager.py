@@ -12,11 +12,10 @@ from datetime import datetime, timezone
 from functools import wraps
 from typing import Any, Awaitable, Callable, Optional, TypeVar
 
-import pyarrow as pa  # type: ignore
-
 from ......providers.vector_store.lancedb import DBConnection, get_connection_from_env
 from ..core.parser_registry import get_supported_parsers, validate_parser_compatibility
 from ..core.schemas import CollectionInfo
+from ..LanceDB.schema_manager import ensure_collection_metadata_table
 from ..utils.model_resolver import resolve_embedding_adapter
 from ..utils.string_utils import escape_lancedb_string
 
@@ -161,6 +160,9 @@ class CollectionManager:
         """
         conn = await self._get_connection()
 
+        # Ensure table exists before accessing
+        ensure_collection_metadata_table(conn)
+
         try:
             # Try to read from collection_metadata table
             table = conn.open_table("collection_metadata")
@@ -205,11 +207,11 @@ class CollectionManager:
         """
         conn = await self._get_connection()
 
+        # Ensure table exists before accessing
+        ensure_collection_metadata_table(conn)
+
         for attempt in range(max_retries):
             try:
-                # Ensure collection_metadata table exists
-                await self._ensure_metadata_table()
-
                 # Prepare data for storage
                 data = collection.to_storage()
                 data["updated_at"] = datetime.now(timezone.utc).replace(
@@ -243,54 +245,6 @@ class CollectionManager:
                     f"Save attempt {attempt + 1} failed for {collection.name}, retrying in {wait_time}s: {e}"
                 )
                 await asyncio.sleep(wait_time)
-
-    async def _ensure_metadata_table(self) -> None:
-        """Ensure collection_metadata table exists in LanceDB.
-
-        Creates the table if it doesn't exist, otherwise does nothing.
-        """
-
-        conn = await self._get_connection()
-
-        schema = pa.schema(
-            [
-                ("name", pa.string()),
-                ("schema_version", pa.string()),
-                ("embedding_model_id", pa.string()),  # Nullable
-                ("embedding_dimension", pa.int32()),  # Nullable
-                ("documents", pa.int32()),
-                ("processed_documents", pa.int32()),
-                ("parses", pa.int32()),
-                ("chunks", pa.int32()),
-                ("embeddings", pa.int32()),
-                ("document_names", pa.string()),  # JSON string
-                ("collection_locked", pa.bool_()),
-                ("allow_mixed_parse_methods", pa.bool_()),
-                ("skip_config_validation", pa.bool_()),
-                ("ingestion_config", pa.string()),  # JSON string
-                ("created_at", pa.timestamp("us")),
-                ("updated_at", pa.timestamp("us")),
-                ("last_accessed_at", pa.timestamp("us")),
-                ("extra_metadata", pa.string()),  # JSON string
-            ]
-        )
-
-        # Check if table already exists
-        table_names_fn = getattr(conn, "table_names", None)
-        table_exists = False
-        if table_names_fn:
-            try:
-                existing_tables = table_names_fn()
-                table_exists = "collection_metadata" in existing_tables
-            except Exception as e:
-                logger.debug(f"Table names check failed: {e}")
-
-        if not table_exists:
-            try:
-                conn.create_table("collection_metadata", schema=schema)
-            except Exception as e:
-                logger.debug(f"Table creation failed (may already exist): {e}")
-                # Table might already exist, continue
 
     async def initialize_collection_embedding(
         self, collection_name: str, embedding_model_id: str
@@ -579,6 +533,77 @@ def mark_collection_accessed_sync(collection_name: str) -> None:
         collection_name: Name of the collection to mark as accessed
     """
     _sync_wrapper(collection_manager.mark_collection_accessed)(collection_name)
+
+
+def resolve_effective_embedding_model_sync(
+    collection_name: str, config_model_id: Optional[str] = None
+) -> str:
+    """Resolve the effective embedding model ID for a collection.
+
+    Logic:
+    1. If collection is initialized, use its bound model ID (and warn if config differs).
+    2. If collection is not initialized, use config model ID.
+    3. If neither is available, raise ValueError.
+
+    Args:
+        collection_name: Name of the collection
+        config_model_id: Model ID from configuration (optional)
+
+    Returns:
+        The resolved model ID string.
+
+    Raises:
+        ValueError: If model cannot be resolved or collection not found.
+    """
+    # Treat empty/whitespace-only model IDs as missing values.
+    config_model_id = (
+        config_model_id.strip()
+        if isinstance(config_model_id, str) and config_model_id.strip()
+        else None
+    )
+    try:
+        mark_collection_accessed_sync(collection_name)
+        collection_info = get_collection_sync(collection_name)
+
+        bound_model_id = (
+            collection_info.embedding_model_id.strip()
+            if isinstance(collection_info.embedding_model_id, str)
+            and collection_info.embedding_model_id.strip()
+            else None
+        )
+
+        if collection_info.is_initialized and bound_model_id:
+            if config_model_id and config_model_id != bound_model_id:
+                logger.warning(
+                    "Config embedding_model_id '%s' overridden by "
+                    "collection '%s' bound model '%s'",
+                    config_model_id,
+                    collection_name,
+                    bound_model_id,
+                )
+            return bound_model_id
+
+        if config_model_id:
+            logger.info(
+                "Collection '%s' not initialized, using config embedding_model_id '%s'",
+                collection_name,
+                config_model_id,
+            )
+            return config_model_id
+
+        raise ValueError(
+            f"Collection '{collection_name}' is not initialized with an embedding model. "
+            "Please ingest documents first or specify embedding_model_id in config."
+        )
+
+    except ValueError as e:
+        if "not found" in str(e):
+            if config_model_id:
+                return config_model_id
+            raise ValueError(
+                f"Collection '{collection_name}' not found and no model ID provided."
+            )
+        raise
 
 
 def rebuild_collection_metadata() -> None:

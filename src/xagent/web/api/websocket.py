@@ -2570,7 +2570,7 @@ async def handle_build_preview_execution(
 
         # Filter tools by category - use tool metadata
         # Note: tool names are stable, defined in code, no database storage needed
-        allowed_tools = None
+        allowed_tools = []
         if tool_categories:
             # Get all tools and filter by category using metadata
             from ...core.tools.adapters.vibe.factory import ToolFactory
@@ -2612,8 +2612,10 @@ async def handle_build_preview_execution(
             llm=default_llm,
             user_id=int(user.id),
             is_admin=bool(user.is_admin),
-            allowed_collections=knowledge_bases if knowledge_bases else None,
-            allowed_skills=skills if skills else None,
+            allowed_collections=knowledge_bases
+            if knowledge_bases is not None
+            else None,
+            allowed_skills=skills if skills is not None else None,
             allowed_tools=allowed_tools,
             task_id=preview_task_id,
             workspace_base_dir="uploads/build_preview",
