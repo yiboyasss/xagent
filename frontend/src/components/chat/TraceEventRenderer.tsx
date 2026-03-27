@@ -11,7 +11,7 @@ import {
   Copy,
   Search,
   FileText,
-  Check
+  Check,
   Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
