@@ -96,71 +96,8 @@ class TelegramBotInstance:
                 f"Received /start from {message.from_user.id} on bot {self.instance_id}"
             )
             await message.answer(
-                "Hello! I am Xagent Telegram Bot.\nPlease use `/login <username> <password>` to link your Xagent account."
+                "Hello! I am Xagent Telegram Bot. You can send /new to start a new task."
             )
-
-        @self.dp.message(Command("login"))
-        async def cmd_login(message: types.Message) -> None:
-            logger.info(
-                f"Received /login from {message.from_user.id} on bot {self.instance_id}"
-            )
-            args = message.text.split()[1:]
-            if len(args) != 2:
-                await message.answer("Usage: `/login <username> <password>`")
-                return
-
-            username, password = args
-            db_gen = get_db()
-            db = next(db_gen)
-            try:
-                from ...api.auth import verify_password
-                from ...models.user_oauth import UserOAuth
-
-                user = db.query(User).filter(User.username == username).first()
-                if not user or not verify_password(password, str(user.password_hash)):
-                    await message.answer("Invalid username or password.")
-                    return
-
-                oauth = (
-                    db.query(UserOAuth)
-                    .filter(
-                        UserOAuth.provider == "telegram",
-                        UserOAuth.provider_user_id == str(message.from_user.id),
-                    )
-                    .first()
-                )
-
-                if oauth:
-                    if oauth.user_id != user.id:
-                        oauth.user_id = user.id
-                        db.commit()
-                        await message.answer(
-                            f"Account successfully relinked to Xagent user '{username}'!"
-                        )
-                    else:
-                        await message.answer(
-                            f"Already linked to Xagent user '{username}'."
-                        )
-                else:
-                    oauth = UserOAuth(
-                        user_id=user.id,
-                        provider="telegram",
-                        provider_user_id=str(message.from_user.id),
-                        access_token="telegram_bot",
-                    )
-                    db.add(oauth)
-                    db.commit()
-                    await message.answer(
-                        f"Account successfully linked to Xagent user '{username}'!"
-                    )
-            except Exception as e:
-                logger.error(f"Error in /login: {e}")
-                await message.answer("An error occurred during login.")
-            finally:
-                try:
-                    next(db_gen)
-                except StopIteration:
-                    pass
 
         @self.dp.message(Command("new"))
         async def cmd_new(message: types.Message) -> None:
@@ -191,23 +128,6 @@ class TelegramBotInstance:
                 f"Received message from {message.from_user.id} on bot {self.instance_id}: {msg_content}"
             )
             asyncio.create_task(self._process_user_message(message))
-
-    async def _get_linked_user(
-        self, db: Session, tg_user: types.User
-    ) -> Optional[User]:
-        from ...models.user_oauth import UserOAuth
-
-        oauth = (
-            db.query(UserOAuth)
-            .filter(
-                UserOAuth.provider == "telegram",
-                UserOAuth.provider_user_id == str(tg_user.id),
-            )
-            .first()
-        )
-        if oauth:
-            return db.query(User).filter(User.id == oauth.user_id).first()
-        return None
 
     async def _extract_message_content(
         self, message: types.Message
@@ -345,14 +265,7 @@ class TelegramBotInstance:
             db_gen = get_db()
             db = next(db_gen)
             try:
-                user = await self._get_linked_user(db, message.from_user)
-                if not user:
-                    await message.answer(
-                        "You are not linked to an Xagent account.\nPlease link your account using <code>/login &lt;username&gt; &lt;password&gt;</code> first.",
-                        parse_mode=ParseMode.HTML,
-                    )
-                    return
-
+                user = None
                 if self.channel_id:
                     from ...models.user_channel import UserChannel
 
@@ -361,17 +274,22 @@ class TelegramBotInstance:
                         .filter(UserChannel.id == self.channel_id)
                         .first()
                     )
-                    if channel and channel.config:
-                        allowed_users = channel.config.get("allowed_users")
-                        if allowed_users is not None:
-                            if (
-                                str(message.from_user.id) not in allowed_users
-                                and user.id != channel.user_id
-                            ):
-                                await message.answer(
-                                    "🚫 You are not authorized to use this bot."
-                                )
-                                return
+                    if channel:
+                        user = db.query(User).filter(User.id == channel.user_id).first()
+                        if channel.config:
+                            allowed_users = channel.config.get("allowed_users")
+                            if allowed_users is not None:
+                                if str(message.from_user.id) not in allowed_users:
+                                    await message.answer(
+                                        "🚫 You are not authorized to use this bot."
+                                    )
+                                    return
+
+                if not user:
+                    await message.answer(
+                        "Configuration error: Cannot find the owner of this bot."
+                    )
+                    return
 
                 active_task_id = self.active_tasks.get(user_id)
                 task = None
