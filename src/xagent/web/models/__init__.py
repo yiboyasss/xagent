@@ -11,6 +11,7 @@ from .oauth_provider import OAuthProvider
 from .oidc_consumed_token import OidcConsumedToken
 from .public_mcp import PublicMCPApp
 from .sandbox import SandboxInfo, SandboxSnapshot
+from .skill import UserSkill, UserSkillFile
 from .system_setting import SystemSetting
 from .task import DAGExecution, Task
 from .template_stats import TemplateStats, UserTemplateRelation
@@ -57,6 +58,8 @@ __all__ = [
     "UploadedFile",
     "SandboxInfo",
     "SandboxSnapshot",
+    "UserSkill",
+    "UserSkillFile",
     "OAuthProvider",
     "OidcConsumedToken",
     "PublicMCPApp",
