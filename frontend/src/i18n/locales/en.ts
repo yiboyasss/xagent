@@ -3453,16 +3453,14 @@ Build when you need.`,
   skillHub: {
     page: {
       title: "Skill Hub",
-      subtitle: "Install skills from ClawHub or write your own. Agents automatically pick the right skill for each task.",
-      createNew: "Create new",
+      subtitle: "Install Skills from registries or write your own. Agents automatically pick the right Skill for each task.",
+      createNew: "Create Skills",
     },
     tabs: {
       discover: "Discover",
       mySkills: "My Skills",
     },
     discover: {
-      featured: "Featured by xagent",
-      popular: "Popular this week",
       browseAll: "Browse all",
       installed: "Installed",
       install: "Install",
@@ -3470,7 +3468,7 @@ Build when you need.`,
       by: "by {owner}",
       installs: "{count} installs",
       noDescription: "No description.",
-      searchPlaceholder: "Search ClawHub…",
+      searchPlaceholder: "Search skills…",
       noMatchSearch: "No skills match your search.",
       registryEmpty: "Registry is empty.",
       scanBadge: {
