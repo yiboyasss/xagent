@@ -1112,6 +1112,14 @@ def _claim_turn_no_commit(
                 Task.lease_expires_at: None,
                 Task.last_heartbeat_at: None,
                 Task.run_id: run_id,
+                # The turn that owns this run's ephemeral connector secrets
+                # (see connector_runtime.store_ephemeral_runtime_values),
+                # written in the same UPDATE that mints run_id so the two
+                # can never disagree about which run a turn_id belongs to.
+                # Not cleared on release - the next CREATE/APPEND claim here
+                # overwrites it, and a stale value from a finished run is
+                # harmless (see Task.connector_runtime_turn_id's own comment).
+                Task.connector_runtime_turn_id: payload.turn_id,
                 Task.last_checkpoint_event_id: None,
                 Task.last_checkpoint_trace_event_id: None,
                 Task.state_version: func.coalesce(Task.state_version, 0) + 1,
