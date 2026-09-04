@@ -2277,6 +2277,22 @@ class AgentServiceManager:
                 db,
             )
 
+        # A caller that has no live turn_id of its own to pass (every resume
+        # path after a cache eviction: websocket explicit/message-triggered
+        # resume, v1 reply, A2A, the channel bots) falls back to the id the
+        # original CREATE/APPEND claim persisted on the row (see
+        # Task.connector_runtime_turn_id's own comment) - without this, the
+        # rebuilt WebToolConfig looks up ephemeral connector secrets under
+        # None and a still-live turn's secrets become unreachable even
+        # though they're still sitting in connector_runtime.py's
+        # process-local store. An explicit value from the caller (the normal
+        # execution path, which always knows its own live turn_id) is never
+        # overridden.
+        if connector_runtime_turn_id is None and task_setup_snapshot is not None:
+            connector_runtime_turn_id = (
+                task_setup_snapshot.task.connector_runtime_turn_id
+            )
+
         persisted_agent_config = (
             task_setup_snapshot.task.agent_config
             if task_setup_snapshot is not None
