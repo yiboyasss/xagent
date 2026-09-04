@@ -70,6 +70,13 @@ class _TaskFields:
     run_id: str | None = None
     state_version: int = 0
     control_state: str | None = None
+    # The turn that owns this run's ephemeral connector secrets (see
+    # connector_runtime.store_ephemeral_runtime_values and Task.
+    # connector_runtime_turn_id's own comment). Read as a fallback by
+    # AgentServiceManager when a caller rebuilding this task's agent after a
+    # cache eviction has no live turn_id of its own to pass - see
+    # get_agent_for_task's docstring.
+    connector_runtime_turn_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -344,6 +351,11 @@ def load_task_setup_snapshot_sync(
             control_state=(
                 str(task_row.control_state)
                 if task_row.control_state is not None
+                else None
+            ),
+            connector_runtime_turn_id=(
+                str(task_row.connector_runtime_turn_id)
+                if task_row.connector_runtime_turn_id is not None
                 else None
             ),
         )

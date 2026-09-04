@@ -1045,6 +1045,80 @@ def test_create_task_persists_connector_runtime_snapshot_and_context(
     assert mock_start_task.call_count == 1
 
 
+def test_create_task_persists_connector_runtime_turn_id(mock_start_task):
+    """The CREATE claim writes the turn's id onto the row in the same UPDATE
+    that mints run_id, so a later agent rebuild (after a cache eviction) can
+    still find this turn's ephemeral connector secrets - see
+    Task.connector_runtime_turn_id's own comment."""
+    agent_id, full_key = _create_agent_with_key()
+
+    resp = client.post(
+        "/v1/chat/tasks",
+        headers=_bearer(full_key),
+        json={
+            "agent_id": agent_id,
+            "message": {"role": "user", "content": "first user message"},
+        },
+    )
+    assert resp.status_code == 202, resp.text
+    task_id = resp.json()["task_id"]
+
+    payload = mock_start_task.call_args.kwargs["payload"]
+    db = _direct_db_session()
+    try:
+        task = db.query(Task).filter(Task.id == task_id).one()
+        assert task.connector_runtime_turn_id == payload.turn_id
+    finally:
+        db.close()
+
+
+def test_append_message_persists_its_own_connector_runtime_turn_id(mock_start_task):
+    """An APPEND turn mints its own new turn_id (a fresh interaction
+    lifetime, per connector_runtime.renew_ephemeral_runtime_values's
+    docstring) and must overwrite the CREATE turn's value, not leave the
+    row pointing at a finished turn's id."""
+    agent_id, full_key = _create_agent_with_key()
+
+    created = client.post(
+        "/v1/chat/tasks",
+        headers=_bearer(full_key),
+        json={
+            "agent_id": agent_id,
+            "message": {"role": "user", "content": "turn one"},
+        },
+    )
+    task_id = created.json()["task_id"]
+    create_turn_id = mock_start_task.call_args.kwargs["payload"].turn_id
+
+    db = _direct_db_session()
+    try:
+        db.query(Task).filter(Task.id == task_id).update(
+            {"status": TaskStatus.COMPLETED}
+        )
+        db.commit()
+    finally:
+        db.close()
+
+    appended = client.post(
+        f"/v1/chat/tasks/{task_id}/messages",
+        headers=_bearer(full_key),
+        json={
+            "agent_id": agent_id,
+            "message": {"role": "user", "content": "turn two"},
+        },
+    )
+    assert appended.status_code == 202, appended.text
+    append_turn_id = mock_start_task.call_args.kwargs["payload"].turn_id
+    assert append_turn_id != create_turn_id
+
+    db = _direct_db_session()
+    try:
+        task = db.query(Task).filter(Task.id == task_id).one()
+        assert task.connector_runtime_turn_id == append_turn_id
+    finally:
+        db.close()
+
+
 def test_create_task_rejects_runtime_context_for_unselected_connector(
     mock_start_task,
 ):
