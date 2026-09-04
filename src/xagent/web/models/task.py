@@ -424,6 +424,15 @@ class Task(Base):  # type: ignore
     )  # SQLite compatible
     agent_config = Column(JSON, nullable=True)  # Agent-specific configuration
     connector_runtime_selected_refs = Column(JSON, nullable=True, default=list)
+    # The turn_id that owns this run's ephemeral connector secrets (see
+    # connector_runtime.py's process-local _EPHEMERAL_RUNTIME_VALUES store).
+    # Written once by the same claim UPDATE that mints run_id (new_run=True
+    # only; a resume claim never rewrites it), so a resumed run's agent
+    # rebuild after a cache eviction can still find the turn its secrets
+    # were stored under. Opaque id, never a secret itself. Not cleared on
+    # release - a stale value from a finished run is harmless and overwritten
+    # by that task's next CREATE/APPEND claim.
+    connector_runtime_turn_id = Column(String(64), nullable=True)
 
     # Execution mode configuration
     execution_mode = Column(
