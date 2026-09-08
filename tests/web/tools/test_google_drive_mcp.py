@@ -139,6 +139,45 @@ def test_get_file_content_accepts_regular_text_file(monkeypatch):
     assert result["content"] == "hello world"
 
 
+@pytest.mark.parametrize("mime_type", ["TEXT/PLAIN", "Text/Csv", "Application/JSON"])
+def test_get_file_content_accepts_mixed_case_mime_types(monkeypatch, mime_type):
+    """Regression guard: mime type tokens are case-insensitive per RFC
+    2045, and the export-extension match elsewhere in this file is already
+    case-insensitive for the same reason — an LLM-supplied differently-
+    cased mime_type must not be wrongly rejected as binary."""
+    files = Mock()
+    files.get.return_value.execute.return_value = {
+        "id": "f1",
+        "name": "notes.txt",
+        "mimeType": mime_type.lower(),
+    }
+    _mock_drive_service(monkeypatch, files)
+    _patch_downloader(monkeypatch, b"hello world")
+
+    result = json.loads(google_drive.google_drive_get_file_content("f1", mime_type))
+
+    assert result["status"] == "success"
+
+
+def test_get_file_content_falls_back_to_file_id_for_empty_drive_name(monkeypatch):
+    """Regression guard: google_drive_download_file's equivalent fallback
+    already handles an empty (not just missing) "name" from Drive via
+    `.get("name") or file_id` — this tool's error message must do the
+    same, not just default on a missing key."""
+    files = Mock()
+    files.get.return_value.execute.return_value = {
+        "id": "f1",
+        "name": "",
+        "mimeType": "application/pdf",
+    }
+    _mock_drive_service(monkeypatch, files)
+
+    result = json.loads(google_drive.google_drive_get_file_content("f1"))
+
+    assert result["status"] == "error"
+    assert "'f1'" in result["message"]
+
+
 def test_get_file_content_accepts_rtf(monkeypatch):
     """Regression guard: RTF is 7-bit-ASCII-clean per spec (non-ASCII
     content is escaped, not raw bytes), so it round-trips through UTF-8
@@ -362,6 +401,29 @@ def test_download_file_sanitizes_unsafe_characters_in_filename(monkeypatch, tmp_
     assert output_path.parent == tmp_path / "output"
     assert ":" not in output_path.name
     assert "?" not in output_path.name
+
+
+def test_download_file_falls_back_to_file_for_whitespace_only_name(
+    monkeypatch, tmp_path
+):
+    """Regression guard: a stem that's only whitespace (a space is an
+    otherwise-"safe" character _UNSAFE_FILENAME_CHARS lets through) must
+    still hit the "file" fallback, not produce an odd, easily-overlooked
+    filename like " .txt"."""
+    files = Mock()
+    files.get.return_value.execute.return_value = {
+        "id": "f1",
+        "name": "   .txt",
+        "mimeType": "text/plain",
+    }
+    _mock_drive_service(monkeypatch, files)
+    _patch_downloader(monkeypatch, b"content")
+
+    result = json.loads(google_drive.google_drive_download_file("f1"))
+
+    assert result["status"] == "success"
+    output_path = Path(result["path"])
+    assert output_path.name == "file.txt"
     assert output_path.name.endswith(".txt")
 
 
@@ -512,7 +574,10 @@ def test_download_file_errors_when_no_task_workspace_is_configured(
 ):
     """Regression guard: an unset output-dir env var must fail loudly
     rather than silently writing into whatever directory the MCP
-    subprocess happens to have as its cwd."""
+    subprocess happens to have as its cwd. Also checks the write target is
+    validated *before* any Drive API call — a misconfigured environment
+    must not burn API quota/bandwidth downloading a file that was never
+    going to be writable anyway."""
     monkeypatch.delenv("XAGENT_GOOGLE_DRIVE_OUTPUT_DIR", raising=False)
     files = Mock()
     files.get.return_value.execute.return_value = {
@@ -528,6 +593,9 @@ def test_download_file_errors_when_no_task_workspace_is_configured(
     assert result["status"] == "error"
     assert "XAGENT_GOOGLE_DRIVE_OUTPUT_DIR" in result["message"]
     assert not (tmp_path / "output").exists()
+    files.get.assert_not_called()
+    files.get_media.assert_not_called()
+    files.export_media.assert_not_called()
 
 
 def test_download_file_dedupes_existing_filename(monkeypatch, tmp_path):

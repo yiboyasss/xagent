@@ -37,13 +37,21 @@ _TEXT_MIME_TYPES = {"application/json", "application/xml", "application/rtf"}
 
 
 def _is_text_mime_type(mime_type: str) -> bool:
-    return mime_type.startswith("text/") or mime_type in _TEXT_MIME_TYPES
+    # Mime type tokens are case-insensitive per RFC 2045; the export-
+    # extension match elsewhere in this file is already case-insensitive
+    # for the same reason, so an LLM-supplied "Application/JSON" or
+    # "TEXT/PLAIN" must be recognized here too instead of being wrongly
+    # rejected as binary.
+    normalized = mime_type.lower()
+    return normalized.startswith("text/") or normalized in _TEXT_MIME_TYPES
 
 
 _UNSAFE_FILENAME_CHARS = re.compile(r"[^A-Za-z0-9_.() -]")
 
 # Comfortably under the ~255-byte NAME_MAX most filesystems enforce, leaving
-# room for the " (N)" suffix _unique_output_path may append on top.
+# room for the " (N)" suffix _unique_output_path and the export-extension
+# append in google_drive_download_file may each add on top (both are at
+# most a handful of characters in practice, e.g. " (12)" or ".pptx").
 _MAX_FILENAME_LENGTH = 200
 # Generous for any real extension, including compound ones like ".tar.gz" —
 # a "suffix" longer than this isn't behaving like an extension anymore (see
@@ -99,7 +107,11 @@ def _safe_output_filename(name: str) -> str:
     """
     base = Path(name).name
     stem, suffix = _split_stem_suffix(base)
-    stem = _UNSAFE_FILENAME_CHARS.sub("_", stem).strip("._") or "file"
+    # Trailing-strip whitespace too, not just "." and "_" — a stem that's
+    # e.g. a single space (allowed by _UNSAFE_FILENAME_CHARS as a "safe"
+    # character) would otherwise pass the `or "file"` fallback unchanged,
+    # producing an odd, easily-overlooked filename like " .txt".
+    stem = _UNSAFE_FILENAME_CHARS.sub("_", stem).strip("._ ") or "file"
     suffix = _UNSAFE_FILENAME_CHARS.sub("_", suffix)[:_MAX_SUFFIX_LENGTH]
     max_stem_length = max(1, _MAX_FILENAME_LENGTH - len(suffix))
     return stem[:max_stem_length] + suffix
@@ -226,7 +238,7 @@ def google_drive_get_file_content(file_id: str, mime_type: str = "text/plain") -
                     {
                         "status": "error",
                         "message": (
-                            f"'{file_metadata.get('name', file_id)}' is not a "
+                            f"'{file_metadata.get('name') or file_id}' is not a "
                             f"text file (mimeType '{file_mime_type}') — this "
                             "tool would corrupt it by decoding as UTF-8. Use "
                             "google_drive_download_file instead."
@@ -270,6 +282,13 @@ def google_drive_download_file(
     "report.pdf").
     """
     try:
+        # Validate the write target before doing any Drive API work at all
+        # (metadata fetch, and especially the full content download) — a
+        # misconfigured environment should fail immediately, not after
+        # burning API quota/bandwidth on a download that was never going
+        # to be writable anyway.
+        output_dir = _output_dir()
+
         service = get_drive_service()
         file_metadata = (
             service.files().get(fileId=file_id, fields="id, name, mimeType").execute()
@@ -308,7 +327,7 @@ def google_drive_download_file(
         if extension and not chosen_name.lower().endswith(extension.lower()):
             chosen_name += extension
 
-        output_path = _unique_output_path(_output_dir(), chosen_name)
+        output_path = _unique_output_path(output_dir, chosen_name)
         output_path.write_bytes(data)
 
         return json.dumps(
