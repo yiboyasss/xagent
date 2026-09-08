@@ -425,6 +425,21 @@ def test_update_slide_requires_at_least_one_field(monkeypatch):
     presentations.get.assert_not_called()
 
 
+def test_update_slide_rejects_whitespace_only_body(monkeypatch):
+    """Regression guard: whitespace-only text ("   ", "\\n\\n") must not
+    slip past the guard just because it's non-empty — that would silently
+    blank real slide content, the same bug class fixed for add_slide."""
+    presentations = Mock()
+    _mock_slides_service(monkeypatch, presentations)
+
+    result = json.loads(
+        google_slides.google_slides_update_slide("pres1", "slide1", body="   \n\n  ")
+    )
+
+    assert result["status"] == "error"
+    presentations.get.assert_not_called()
+
+
 def test_update_slide_rejects_unknown_slide_id(monkeypatch):
     presentations = Mock()
     _mock_slides_service(monkeypatch, presentations)
@@ -472,6 +487,7 @@ def test_delete_slide_sends_delete_object_request(monkeypatch):
     presentations = Mock()
     presentations.batchUpdate.return_value.execute.return_value = {}
     _mock_slides_service(monkeypatch, presentations)
+    _mock_presentation_get(presentations, "slide1", [])
 
     result = json.loads(google_slides.google_slides_delete_slide("pres1", "slide1"))
 
@@ -480,10 +496,28 @@ def test_delete_slide_sends_delete_object_request(monkeypatch):
     assert requests == [{"deleteObject": {"objectId": "slide1"}}]
 
 
+def test_delete_slide_rejects_id_that_is_not_a_slide(monkeypatch):
+    """Regression guard: a placeholder shape id (e.g. one this file itself
+    mints as f"{slide_id}_title") must not be silently accepted — Slides'
+    deleteObject would delete just that shape while reporting success as if
+    the whole slide had been removed."""
+    presentations = Mock()
+    _mock_slides_service(monkeypatch, presentations)
+    _mock_presentation_get(presentations, "slide1", [])
+
+    result = json.loads(
+        google_slides.google_slides_delete_slide("pres1", "slide1_title")
+    )
+
+    assert result["status"] == "error"
+    presentations.batchUpdate.assert_not_called()
+
+
 def test_delete_slide_returns_error_payload_on_api_failure(monkeypatch):
     presentations = Mock()
     presentations.batchUpdate.return_value.execute.side_effect = RuntimeError("boom")
     _mock_slides_service(monkeypatch, presentations)
+    _mock_presentation_get(presentations, "slide1", [])
 
     result = json.loads(google_slides.google_slides_delete_slide("pres1", "slide1"))
 

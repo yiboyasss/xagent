@@ -100,20 +100,29 @@ def _find_slide(presentation: dict[str, Any], slide_id: str) -> dict[str, Any] |
     return None
 
 
-def _find_placeholders(slide: dict[str, Any]) -> dict[str, tuple[str, str]]:
-    """Map "title"/"body" to (objectId, placeholder_type) for a slide's
+def _find_placeholders(
+    slide: dict[str, Any],
+) -> dict[str, tuple[dict[str, Any], str]]:
+    """Map "title"/"body" to (element, placeholder_type) for a slide's
     shapes, so callers can target the right shape without knowing the
-    layout-specific ids assigned when the slide was created."""
-    found: dict[str, tuple[str, str]] = {}
+    layout-specific ids assigned when the slide was created.
+
+    If a slide has more than one placeholder of the same role (not
+    reachable via this file's own google_slides_add_slide, which only ever
+    creates one of each, but possible for a slide created some other way),
+    only the first one encountered is kept — there's no way to disambiguate
+    further from the role alone.
+    """
+    found: dict[str, tuple[dict[str, Any], str]] = {}
     for element in slide.get("pageElements", []):
         placeholder = element.get("shape", {}).get("placeholder")
         if not placeholder:
             continue
         placeholder_type = placeholder.get("type", "")
         if placeholder_type in _TITLE_PLACEHOLDER_TYPES:
-            found.setdefault("title", (element["objectId"], placeholder_type))
+            found.setdefault("title", (element, placeholder_type))
         elif placeholder_type in _BODY_PLACEHOLDER_TYPES:
-            found.setdefault("body", (element["objectId"], placeholder_type))
+            found.setdefault("body", (element, placeholder_type))
     return found
 
 
@@ -364,6 +373,10 @@ def google_slides_update_slide(
     try:
         if not title and not body:
             return _error("Provide at least one of 'title' or 'body' to update.")
+        if title and not title.strip():
+            return _error("'title' is whitespace-only; provide real text or omit it.")
+        if body and not body.strip():
+            return _error("'body' is whitespace-only; provide real text or omit it.")
 
         pres_id = _resolve_presentation_id(presentation_id)
         service = get_slides_service()
@@ -386,36 +399,27 @@ def google_slides_update_slide(
                 "'body' has nowhere to go."
             )
 
-        existing_text = {
-            element["objectId"]: _element_text(element)
-            for element in slide.get("pageElements", [])
-        }
-
         requests: list[dict[str, Any]] = []
-        if title:
-            title_id, _ = placeholders["title"]
-            if existing_text.get(title_id):
+        for role, text in (("title", title), ("body", body)):
+            if not text:
+                continue
+            element, placeholder_type = placeholders[role]
+            object_id = element["objectId"]
+            if _element_text(element):
                 requests.append(
                     {
                         "deleteText": {
-                            "objectId": title_id,
+                            "objectId": object_id,
                             "textRange": {"type": "ALL"},
                         }
                     }
                 )
-            requests.append({"insertText": {"objectId": title_id, "text": title}})
-        if body:
-            body_id, body_type = placeholders["body"]
-            if existing_text.get(body_id):
-                requests.append(
-                    {
-                        "deleteText": {
-                            "objectId": body_id,
-                            "textRange": {"type": "ALL"},
-                        }
-                    }
+            if role == "title":
+                requests.append({"insertText": {"objectId": object_id, "text": text}})
+            else:
+                requests.extend(
+                    _body_insert_requests(object_id, text, placeholder_type == "BODY")
                 )
-            requests.extend(_body_insert_requests(body_id, body, body_type == "BODY"))
 
         service.presentations().batchUpdate(
             presentationId=pres_id, body={"requests": requests}
@@ -445,6 +449,15 @@ def google_slides_delete_slide(presentation_id: str, slide_id: str) -> str:
     try:
         pres_id = _resolve_presentation_id(presentation_id)
         service = get_slides_service()
+        presentation = service.presentations().get(presentationId=pres_id).execute()
+
+        if _find_slide(presentation, slide_id) is None:
+            return _error(
+                f"No slide with id '{slide_id}' in this presentation — "
+                "refusing to delete. Make sure this is a slide id, not a "
+                "placeholder shape id (e.g. one ending in '_title'/'_body')."
+            )
+
         service.presentations().batchUpdate(
             presentationId=pres_id,
             body={"requests": [{"deleteObject": {"objectId": slide_id}}]},
