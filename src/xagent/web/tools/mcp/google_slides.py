@@ -58,6 +58,65 @@ def _error(message: str) -> str:
     return json.dumps({"status": "error", "message": message})
 
 
+def _body_insert_requests(
+    body_id: str, body: str, is_bulleted: bool
+) -> list[dict[str, Any]]:
+    """insertText for `body_id`, plus createParagraphBullets when the target
+    placeholder is a real bulleted-list BODY (not e.g. a plain SUBTITLE)."""
+    requests: list[dict[str, Any]] = [
+        {
+            "insertText": {
+                "objectId": body_id,
+                "text": _strip_bullet_prefixes(body) if is_bulleted else body,
+            }
+        }
+    ]
+    if is_bulleted:
+        requests.append(
+            {
+                "createParagraphBullets": {
+                    "objectId": body_id,
+                    "textRange": {"type": "ALL"},
+                    "bulletPreset": "BULLET_DISC_CIRCLE_SQUARE",
+                }
+            }
+        )
+    return requests
+
+
+# Placeholder types that fill the "title" vs "body" role of a slide, used to
+# locate an existing slide's placeholders by type when editing it (as
+# opposed to _LAYOUT_PLACEHOLDERS above, which picks placeholder types when
+# *creating* a slide from a predefined layout).
+_TITLE_PLACEHOLDER_TYPES = {"TITLE", "CENTERED_TITLE"}
+_BODY_PLACEHOLDER_TYPES = {"BODY", "SUBTITLE"}
+
+
+def _find_slide(presentation: dict[str, Any], slide_id: str) -> dict[str, Any] | None:
+    slides: list[dict[str, Any]] = presentation.get("slides", [])
+    for slide in slides:
+        if slide.get("objectId") == slide_id:
+            return slide
+    return None
+
+
+def _find_placeholders(slide: dict[str, Any]) -> dict[str, tuple[str, str]]:
+    """Map "title"/"body" to (objectId, placeholder_type) for a slide's
+    shapes, so callers can target the right shape without knowing the
+    layout-specific ids assigned when the slide was created."""
+    found: dict[str, tuple[str, str]] = {}
+    for element in slide.get("pageElements", []):
+        placeholder = element.get("shape", {}).get("placeholder")
+        if not placeholder:
+            continue
+        placeholder_type = placeholder.get("type", "")
+        if placeholder_type in _TITLE_PLACEHOLDER_TYPES:
+            found.setdefault("title", (element["objectId"], placeholder_type))
+        elif placeholder_type in _BODY_PLACEHOLDER_TYPES:
+            found.setdefault("body", (element["objectId"], placeholder_type))
+    return found
+
+
 def get_slides_service() -> Any:
     token = os.environ.get("GOOGLE_ACCESS_TOKEN")
     refresh_token = os.environ.get("GOOGLE_REFRESH_TOKEN")
@@ -187,6 +246,16 @@ def google_slides_add_slide(
         pass body="" or the call is rejected.
       - "BLANK": no placeholders at all; use google_slides_batch_update to
         add free-form text boxes/images instead.
+
+    To fix a slide this call already created (wrong/missing text), use
+    google_slides_update_slide with its slide_id — do NOT call
+    google_slides_add_slide again, that creates a second, duplicate slide
+    rather than editing the first one.
+
+    After adding all the slides for a deck, call
+    google_slides_get_presentation once to read back every slide's actual
+    title/body text and confirm it matches what you intended (e.g. against
+    the user's outline) before telling the user the deck is done.
     """
     try:
         if layout not in _LAYOUT_PLACEHOLDERS:
@@ -254,25 +323,9 @@ def google_slides_add_slide(
         if title:
             requests.append({"insertText": {"objectId": title_id, "text": title}})
         if body:
-            is_bulleted = body_placeholder == "BODY"
-            requests.append(
-                {
-                    "insertText": {
-                        "objectId": body_id,
-                        "text": _strip_bullet_prefixes(body) if is_bulleted else body,
-                    }
-                }
+            requests.extend(
+                _body_insert_requests(body_id, body, body_placeholder == "BODY")
             )
-            if is_bulleted:
-                requests.append(
-                    {
-                        "createParagraphBullets": {
-                            "objectId": body_id,
-                            "textRange": {"type": "ALL"},
-                            "bulletPreset": "BULLET_DISC_CIRCLE_SQUARE",
-                        }
-                    }
-                )
 
         service.presentations().batchUpdate(
             presentationId=pres_id, body={"requests": requests}
@@ -288,6 +341,125 @@ def google_slides_add_slide(
         )
     except Exception as e:
         logger.error(f"Error adding slide: {e}")
+        return _error(str(e))
+
+
+@mcp.tool()
+def google_slides_update_slide(
+    presentation_id: str, slide_id: str, title: str = "", body: str = ""
+) -> str:
+    """
+    Replace the title and/or body text of an existing slide (identified by
+    the slide_id a prior google_slides_add_slide call returned), instead of
+    creating a new one. Use this to fix a slide that came out wrong or
+    incomplete — calling google_slides_add_slide again does NOT edit that
+    slide, it creates a duplicate one next to it.
+
+    Only the placeholders you pass non-empty text for are touched; omit
+    title or body to leave that placeholder untouched. Body text follows
+    the same rule as google_slides_add_slide: newline-separated lines
+    become bulleted paragraphs when the slide's body placeholder is a real
+    "BODY" type (not a plain "SUBTITLE").
+    """
+    try:
+        if not title and not body:
+            return _error("Provide at least one of 'title' or 'body' to update.")
+
+        pres_id = _resolve_presentation_id(presentation_id)
+        service = get_slides_service()
+        presentation = service.presentations().get(presentationId=pres_id).execute()
+
+        slide = _find_slide(presentation, slide_id)
+        if slide is None:
+            return _error(f"No slide with id '{slide_id}' in this presentation.")
+
+        placeholders = _find_placeholders(slide)
+
+        if title and "title" not in placeholders:
+            return _error(
+                f"Slide '{slide_id}' has no title placeholder, so 'title' "
+                "has nowhere to go."
+            )
+        if body and "body" not in placeholders:
+            return _error(
+                f"Slide '{slide_id}' has no body/subtitle placeholder, so "
+                "'body' has nowhere to go."
+            )
+
+        existing_text = {
+            element["objectId"]: _element_text(element)
+            for element in slide.get("pageElements", [])
+        }
+
+        requests: list[dict[str, Any]] = []
+        if title:
+            title_id, _ = placeholders["title"]
+            if existing_text.get(title_id):
+                requests.append(
+                    {
+                        "deleteText": {
+                            "objectId": title_id,
+                            "textRange": {"type": "ALL"},
+                        }
+                    }
+                )
+            requests.append({"insertText": {"objectId": title_id, "text": title}})
+        if body:
+            body_id, body_type = placeholders["body"]
+            if existing_text.get(body_id):
+                requests.append(
+                    {
+                        "deleteText": {
+                            "objectId": body_id,
+                            "textRange": {"type": "ALL"},
+                        }
+                    }
+                )
+            requests.extend(_body_insert_requests(body_id, body, body_type == "BODY"))
+
+        service.presentations().batchUpdate(
+            presentationId=pres_id, body={"requests": requests}
+        ).execute()
+
+        return json.dumps(
+            {
+                "status": "success",
+                "presentation_id": pres_id,
+                "slide_id": slide_id,
+            },
+            ensure_ascii=False,
+        )
+    except Exception as e:
+        logger.error(f"Error updating slide: {e}")
+        return _error(str(e))
+
+
+@mcp.tool()
+def google_slides_delete_slide(presentation_id: str, slide_id: str) -> str:
+    """
+    Permanently delete one slide from a presentation by its slide_id.
+    Use this to remove a duplicate or wrong slide — for example one created
+    by calling google_slides_add_slide a second time instead of using
+    google_slides_update_slide to fix the original.
+    """
+    try:
+        pres_id = _resolve_presentation_id(presentation_id)
+        service = get_slides_service()
+        service.presentations().batchUpdate(
+            presentationId=pres_id,
+            body={"requests": [{"deleteObject": {"objectId": slide_id}}]},
+        ).execute()
+
+        return json.dumps(
+            {
+                "status": "success",
+                "presentation_id": pres_id,
+                "slide_id": slide_id,
+            },
+            ensure_ascii=False,
+        )
+    except Exception as e:
+        logger.error(f"Error deleting slide: {e}")
         return _error(str(e))
 
 
