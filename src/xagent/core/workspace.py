@@ -352,7 +352,12 @@ class TaskWorkspace:
         source = self.resolve_file_id_detached(file_id)
         if source is None:
             raise FileNotFoundError(f"File not found: {file_id}")
-        source = Path(source).resolve(strict=True)
+        try:
+            source = Path(source).resolve(strict=True)
+        except RuntimeError:
+            # Python 3.11/3.12 raise RuntimeError for symlink loops. Keep the
+            # unresolved path so the normal filesystem check can fail closed.
+            source = Path(source)
         if not source.is_file():
             raise FileNotFoundError(f"File not found: {file_id}")
 
@@ -375,7 +380,11 @@ class TaskWorkspace:
         root, so a connector cannot cause arbitrary workspace deletion.
         """
 
-        candidate = Path(file_path).resolve()
+        try:
+            candidate = Path(file_path).resolve()
+        except RuntimeError:
+            # A symlink loop must not escape cleanup's confined-path check.
+            candidate = Path(file_path)
         staging_root = (self.internal_temp_dir / "mcp-upload").resolve()
         if not candidate.is_relative_to(staging_root) or candidate == staging_root:
             raise ValueError("staged upload path is outside the task staging area")
