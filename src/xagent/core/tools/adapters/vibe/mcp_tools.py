@@ -275,7 +275,17 @@ async def create_mcp_tools(config: "BaseToolConfig") -> List[Any]:
         session_identities = identity_getter() if callable(identity_getter) else {}
         consumer_getter = getattr(config, "get_actor_mcp_stdio_session_consumer", None)
         session_consumer = consumer_getter() if callable(consumer_getter) else None
+        workspace_getter = getattr(config, "get_task_runtime_workspace", None)
+        runtime_workspace = (
+            workspace_getter() if callable(workspace_getter) else None
+        )
+        if not callable(
+            getattr(runtime_workspace, "stage_file_for_external_upload", None)
+        ):
+            runtime_workspace = None
         create_kwargs: dict[str, Any] = {"sandbox": config.get_sandbox()}
+        if runtime_workspace is not None:
+            create_kwargs["workspace"] = runtime_workspace
         if session_identities:
             create_kwargs.update(
                 actor_stdio_session_identities=session_identities,
